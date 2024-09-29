@@ -25,6 +25,7 @@
           debug: true
           tls-san:
             - "{{ inventory_hostname }}"
+          write-kubeconfig-mode: 644
         force: true
 
     - name: Run K3s installation script
