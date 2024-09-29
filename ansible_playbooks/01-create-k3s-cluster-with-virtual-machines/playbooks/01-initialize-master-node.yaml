@@ -24,7 +24,7 @@
           selinux: true
           debug: true
           tls-san:
-            - "{{ inventory_hostname }}"
+            - "{{ ansible_host  }}"
           write-kubeconfig-mode: 644
         force: true
 
