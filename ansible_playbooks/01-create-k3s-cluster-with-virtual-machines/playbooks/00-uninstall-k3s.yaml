@@ -1,0 +1,9 @@
+---
+- name: Uninstall K3s
+  hosts: initial_master
+  become: true
+  tasks:
+    - name: Run K3s uninstall script
+      ansible.builtin.shell: /usr/local/bin/k3s-uninstall.sh
+      args:
+        _uses_shell: true

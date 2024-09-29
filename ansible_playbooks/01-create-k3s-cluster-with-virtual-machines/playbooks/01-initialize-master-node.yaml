@@ -1,0 +1,32 @@
+---
+- name: Configure initial master node
+  hosts: initial_master
+  become: true
+  vars_files:
+    - ../vars.yaml
+  tasks:
+    - name: Disable Firewall
+      ansible.builtin.systemd:
+        name: firewalld
+        state: stopped
+        enabled: no
+
+    - name: Create K3s configuration directory
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: directory
+
+    - name: Configure K3s server
+      ansible.builtin.copy:
+        dest: /etc/rancher/k3s/config.yaml
+        content: |
+          token: {{ token }}
+          selinux: true
+          debug: true
+          tls-san:
+            - "{{ inventory_hostname }}"
+        force: true
+
+    - name: Run K3s installation script
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | sh -
