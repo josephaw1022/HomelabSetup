@@ -3,6 +3,12 @@
 
 This repository contains Ansible playbooks and a shell script for setting up a K3s Kubernetes cluster, including master and worker nodes. After setting up the cluster, you can use the `k3s-kubeconfig.yaml` file with the Headlamp desktop application for Kubernetes management.
 
+
+
+# Pre-req
+
+run `ssh-keyscan -H <host-ip> >> ~/.ssh/known_hosts` for each host in the inventory
+
 ### Directory Structure
 
 ```
