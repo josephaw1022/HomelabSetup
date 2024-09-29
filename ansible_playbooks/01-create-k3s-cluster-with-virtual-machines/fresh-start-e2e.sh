@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-# run the ./delete-kubeconfig-file.sh script
 ./delete-kubeconfig-file.sh
 
 ansible-playbook -i inventory.ini playbooks/00-uninstall-k3s.yaml
