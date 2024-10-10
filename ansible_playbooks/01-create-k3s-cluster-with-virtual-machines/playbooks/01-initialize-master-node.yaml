@@ -1,5 +1,6 @@
 ---
 - name: Configure initial master node
+  hosts: initial_master
   become: true
   vars_files:
     - ../vars.yaml
