@@ -1,0 +1,40 @@
+{{- range $name, $app := .Values.apps }}
+  {{- if $app.enabled }}
+
+    {{- range $manifest := $app.extraManifests }}
+---
+{{- toYaml $manifest | nindent 0 }}
+    {{- end }}
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  {{- toYaml $app.metadata | nindent 2 }}
+spec:
+  project: {{ $app.project }}
+  source:
+    repoURL: {{ $app.repoURL }}
+    targetRevision: {{ $app.targetRevision }}
+    {{- if $app.path }}
+    path: {{ $app.path }}
+    {{- end }}
+    {{- if $app.chart }}
+    chart: {{ $app.chart }}
+    {{- end }}
+    helm:
+      releaseName: {{ $app.helm.releaseName }}
+      {{- if $app.helm.values }}
+      values: |
+        {{- toYaml $app.helm.values | nindent 8 }}
+      {{- end }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ $app.namespace }}
+  syncPolicy:
+    {{- toYaml $app.syncPolicy | nindent 4 }}
+  {{- if $app.extraSpecs }}
+    {{- toYaml $app.extraSpecs | nindent 2 }}
+  {{- end }}
+  {{- end }}
+{{- end }}
