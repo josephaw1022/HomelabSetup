@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <title>Kubeconfig YAML Extractor</title>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white shadow-md rounded-lg p-6 w-full max-w-lg">
+        <h1 class="text-2xl font-bold text-center mb-6">Kubeconfig YAML Extractor</h1>
+
+
+
+        <div class="mb-4">
+            <label for="clusterName" class="block text-sm font-medium text-gray-700 mb-1">Cluster Name</label>
+            <input type="text" id="clusterName" placeholder="Enter cluster name"
+                class="block w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+
+        <div class="mb-4">
+            <label for="clusterIp" class="block text-sm font-medium text-gray-700 mb-1">Cluster IP</label>
+            <input type="text" id="clusterIp" placeholder="Enter cluster IP"
+                class="block w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+
+        <div class="mb-4">
+            <input type="file" id="fileInput" accept=".txt"
+                class="block w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+
+        <div class="flex justify-between mb-6">
+            <button onclick="downloadYaml()"
+                class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 mr-2">
+                Download YAML
+            </button>
+            <button onclick="copyToClipboard()"
+                class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 ml-2">
+                Copy to Clipboard
+            </button>
+        </div>
+
+        <h2 class="text-lg font-semibold mb-2">Extracted YAML Content:</h2>
+        <pre id="yamlOutput" class="bg-gray-100 p-4 border border-gray-300 rounded-md overflow-auto text-sm"></pre>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+
+</html>
