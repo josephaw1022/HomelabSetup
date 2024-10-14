@@ -1,0 +1,6 @@
+dependencies:
+- name: bootstrapCluster
+  repository: file://../../catalog/BootstrapCluster
+  version: 0.1.0
+digest: sha256:469913427c918b035cab0cd9c5c9a1a8795317ae6a88367c6e991dcc6596be67
+generated: "2024-10-13T17:23:12.017099606-04:00"
