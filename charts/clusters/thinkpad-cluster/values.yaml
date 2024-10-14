@@ -167,3 +167,37 @@ bootstrapCluster:
         - CreateNamespace=true
         - Replace=true
         - ApplyOutOfSyncOnly=true
+  
+    olm:
+      enabled: true
+      namespace: olm
+      metadata:
+        name: olm
+        namespace: argocd
+        finalizers:
+        - resources-finalizer.argocd.argoproj.io
+        annotations:
+          argocd.argoproj.io/sync-wave: "0"
+      project: default
+      repoURL: https://github.com/josephaw1022/operator-lifecycle-manager
+      path: deploy/chart
+      targetRevision: HEAD
+      helm:
+        releaseName: olm
+        values: {}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 10
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 10m
+        syncOptions:
+        - CreateNamespace=true
+        - PrunePropagationPolicy=foreground
+        - ServerSideApply=true
+        - Replace=true
+        - ApplyOutOfSyncOnly=true
