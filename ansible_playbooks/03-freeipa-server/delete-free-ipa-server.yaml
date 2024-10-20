@@ -1,0 +1,39 @@
+---
+- name: Remove FreeIPA container and revert changes
+  hosts: freeipa_host
+  become: true
+  gather_facts: false
+  tasks:
+
+    - name: Stop and remove FreeIPA container
+      shell: |
+        podman stop freeipa-server || true
+        podman rm freeipa-server || true
+      ignore_errors: true
+
+    - name: Remove FreeIPA named volumes
+      shell: |
+        podman volume rm freeipa-data || true
+        podman volume rm freeipa-config || true
+      ignore_errors: true
+
+    - name: Make /etc/resolv.conf mutable again (remove immutability)
+      command: chattr -i /etc/resolv.conf
+      ignore_errors: true
+
+    - name: Remove DNS entry from /etc/resolv.conf
+      lineinfile:
+        path: /etc/resolv.conf
+        regexp: "^nameserver 127.0.0.1"
+        state: absent
+
+    - name: Start dnsmasq service to restore DNS
+      service:
+        name: dnsmasq
+        state: started
+        enabled: true
+
+    - name: Remove FreeIPA answer file
+      file:
+        path: /etc/ipa-server-install-options
+        state: absent

@@ -1,0 +1,27 @@
+---
+- name: Display logs for the FreeIPA Podman container
+  hosts: freeipa_host
+  become: true
+  gather_facts: false
+  tasks:
+
+    - name: Check if FreeIPA container is running
+      shell: |
+        podman ps --filter "name=freeipa-server" --format "{{'{{'}}.ID{{'}}'}}"
+      register: container_check
+      ignore_errors: true
+
+    - name: Fail if the FreeIPA container is not running
+      fail:
+        msg: "FreeIPA container is not running."
+      when: container_check.stdout == ""
+
+    - name: Display FreeIPA container logs
+      shell: |
+        podman logs freeipa-server
+      register: container_logs
+      when: container_check.stdout != ""
+
+    - name: Show the logs
+      debug:
+        var: container_logs.stdout
