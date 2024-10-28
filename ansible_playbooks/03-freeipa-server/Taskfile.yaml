@@ -1,0 +1,22 @@
+version: '3'
+
+tasks:
+  setup-freeipa:
+    desc: "Provision the FreeIPA server"
+    cmds:
+      - ansible-playbook -i inventory.ini create-free-ipa-server.yaml
+
+  remove-freeipa:
+    desc: "Tear down the FreeIPA server"
+    cmds:
+      - ansible-playbook -i inventory.ini delete-free-ipa-server.yaml
+
+  view-logs:
+    desc: "Retrieve FreeIPA container logs"
+    cmds:
+      - ansible-playbook -i inventory.ini get-free-ipa-container-logs.yaml
+
+  list-tasks:
+    desc: "Display all available tasks"
+    cmds:
+      - task --list
