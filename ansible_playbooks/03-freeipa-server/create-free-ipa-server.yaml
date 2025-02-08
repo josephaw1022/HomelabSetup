@@ -32,28 +32,30 @@
     - name: Run FreeIPA server container with automated setup
       shell: |
         podman run -d \
-        --name freeipa-server \
-        --restart unless-stopped \
-        -v freeipa-data:/data \
-        -v freeipa-config:/config \
-        -p 80:80 \
-        -p 443:443 \
-        -p 389:389 \
-        -p 636:636 \
-        -p 88:88 \
-        -p 464:464 \
-        -p 53:53/tcp \
-        -p 53:53/udp \
-        --dns=127.0.0.1 \
-        -h freeipa.example.com \
-        docker.io/freeipa/freeipa-server:almalinux-9-4.11.0 \
-        ipa-server-install \
-        --realm EXAMPLE.COM \
-        --domain example.com \
-        --ds-password 'DirectoryManagerPass123' \
-        --admin-password 'AdminPass123' \
-        --hostname freeipa.example.com \
-        --unattended --setup-dns --forwarder 1.1.1.1
+          --name freeipa-server \
+          --restart unless-stopped \
+          --network=host \
+          -v freeipa-data:/data \
+          -v freeipa-config:/config \
+          -p 80:80 \
+          -p 443:443 \
+          -p 389:389 \
+          -p 636:636 \
+          -p 88:88 \
+          -p 464:464 \
+          -p 53:53/tcp \
+          -p 53:53/udp \
+          --dns=10.0.0.1 \
+          -h freeipa.kubesoar.dev \
+          docker.io/freeipa/freeipa-server:almalinux-9-4.11.0 \
+          ipa-server-install \
+          --realm KUBESOAR.DEV \
+          --domain kubesoar.dev \
+          --ds-password 'DirectoryManagerPass123' \
+          --admin-password 'AdminPass123' \
+          --hostname freeipa.kubesoar.dev \
+          --unattended --setup-dns --forwarder=1.1.1.1
+
 
 
     - name: Show the logs if FreeIPA install fails
