@@ -1,0 +1,37 @@
+- name: Setup K3s Single Node Cluster
+  hosts: k3s_nodes
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Update machine
+      package:
+        name: '*'
+        state: latest
+
+    - name: Ensure required directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /etc/rancher/k3s
+        - /var/lib/rancher/k3s/server/manifests
+
+    - name: Apply K3s configuration template
+      template:
+        src: ../templates/config.yaml.j2
+        dest: /etc/rancher/k3s/config.yaml
+        mode: '0644'
+
+
+
+    - name: Copy K3s manifests to server
+      copy:
+        src: "./k3s_manifests/"
+        dest: "/var/lib/rancher/k3s/server/manifests"
+        mode: '0644'
+
+
+    - name: Install K3s
+      shell: curl -sfL https://get.k3s.io | sh -

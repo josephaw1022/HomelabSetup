@@ -1,0 +1,29 @@
+version: '3'
+
+tasks:
+
+  master-build:
+    description: "Build the K3s First Server Node"
+    cmds:
+      - ansible-playbook -i inventory.ini playbooks/k3s_create.yaml -e "@vars/k3s-server-node-config.yaml"
+
+  master-clean:
+    description: "Clean the K3s First Server Node"
+
+    cmds:
+      - ansible-playbook -i inventory.ini playbooks/k3s_destroy.yaml -e "@vars/k3s-server-node-config.yaml"
+
+  worker-build:
+    description: "Build the K3s Worker Node"
+    cmds:
+      - ansible-playbook -i inventory.ini playbooks/k3s_worker_node_create.yaml -e "@vars/k3s-server-node-config.yaml"
+
+  worker-clean:
+    description: "Clean the K3s Worker Node"
+    cmds:
+      - ansible-playbook -i inventory.ini playbooks/k3s_worker_node_destroy.yaml
+  
+  fetch-kubeconfig:
+    description: "Fetch and Configure K3s Kubeconfig Locally"
+    cmds:
+      - ansible-playbook -i inventory.ini playbooks/fetch-kubeconfig.yaml

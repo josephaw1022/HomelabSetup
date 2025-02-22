@@ -1,0 +1,20 @@
+- name: Uninstall K3s Single Node Cluster
+  hosts: k3s_nodes
+  become: true
+
+  tasks:
+    - name: Run K3s uninstall script
+      shell: /usr/local/bin/k3s-uninstall.sh
+      args:
+        removes: /usr/local/bin/k3s
+      ignore_errors: true
+
+    - name: Remove K3s configuration directory
+      file:
+        path: /etc/rancher/k3s
+        state: absent
+      ignore_errors: true
+
+    - name: Remove all manifest files from K3s
+      command: rm -rf /var/lib/rancher/k3s/server/manifests/*
+      ignore_errors: true

@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tekton-pipelines
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+---
+apiVersion: operator.tekton.dev/v1alpha1
+kind: TektonConfig
+metadata:
+  name: config
+  namespace: tekton-pipelines
+spec:
+  profile: all
+  targetNamespace: tekton-pipelines
+  pruner:
+    resources:
+      - pipelinerun
+      - taskrun
+    keep: 100
+    schedule: "0 8 * * *"
+  pipeline:
+    enable-tekton-oci-bundles: true
+  dashboard:
+    readonly: false

@@ -1,0 +1,19 @@
+- name: Install K3s Agent Nodes
+  hosts: worker_nodes
+  become: true
+
+  tasks:
+    - name: Set K3s token from vars file if defined
+      set_fact:
+        k3s_token: "{{ token }}"
+      when: token is defined
+
+
+    - name: Ensure K3s Agent is not already installed
+      command: command -v k3s-agent
+      register: k3s_agent_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install K3s Agent
+      shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ groups['first_master_node'][0] }}:6443 K3S_TOKEN='{{ k3s_token }}' sh -"

@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: olm-quickstart
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/operator-framework/operator-lifecycle-manager.git
+    targetRevision: master
+    path: deploy/upstream/quickstart
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: olm
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

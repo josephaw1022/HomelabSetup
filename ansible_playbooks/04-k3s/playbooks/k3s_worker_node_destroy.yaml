@@ -1,0 +1,14 @@
+- name: Uninstall K3s Agent Nodes
+  hosts: worker_nodes
+  become: true
+
+  tasks:
+    - name: Run K3s agent uninstall script
+      shell: /usr/local/bin/k3s-agent-uninstall.sh
+      args:
+        removes: /usr/local/bin/k3s-agent
+
+    - name: Remove K3s configuration directory
+      file:
+        path: /etc/rancher/k3s
+        state: absent

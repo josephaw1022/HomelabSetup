@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubevirt-hyperconverged
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+
+---
+apiVersion: hco.kubevirt.io/v1beta1
+kind: HyperConverged
+metadata:
+  annotations:
+    deployOVS: 'false'
+  name: kubevirt-hyperconverged
+  namespace: kubevirt-hyperconverged
+spec: {}
