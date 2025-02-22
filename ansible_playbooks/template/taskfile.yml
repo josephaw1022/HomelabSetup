@@ -1,0 +1,11 @@
+
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task --list-all
+  
+  example:
+    cmds:
+      - ansible-playbook -i inventory.ini playbooks/example.yaml -e "@vars/example.yaml"

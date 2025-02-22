@@ -1,0 +1,8 @@
+---
+- name: Example playbook
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Print the message from the vars file
+      debug:
+        msg: "{{ message }}"
