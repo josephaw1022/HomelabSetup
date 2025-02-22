@@ -14,6 +14,14 @@
         name: dnsmasq
         state: stopped
         enabled: false
+      ignore_errors: true
+        
+    - name: Stop systemd-resolved service
+      service:
+        name: systemd-resolved
+        state: stopped
+        enabled: false
+      ignore_errors: true
 
     - name: Forcefully kill any remaining dnsmasq processes
       command: killall dnsmasq
@@ -29,11 +37,19 @@
         msg: "Port 53 is still in use. FreeIPA cannot bind to it."
       when: port_check_output.stdout != ""
 
+
+    - name: Delete all pods, volumes, and containers
+      shell: |
+        podman pod rm -f freeipa-server
+        podman volume rm -f freeipa-data
+        podman volume rm -f freeipa-config
+        podman rm -f freeipa-server
+
     - name: Run FreeIPA server container with automated setup
       shell: |
-        podman run -d \
+        sudo podman run -d \
           --name freeipa-server \
-          --restart unless-stopped \
+          --restart=always \
           --network=host \
           -v freeipa-data:/data \
           -v freeipa-config:/config \
@@ -45,16 +61,16 @@
           -p 464:464 \
           -p 53:53/tcp \
           -p 53:53/udp \
-          --dns=10.0.0.1 \
-          -h freeipa.kubesoar.dev \
+          -h freeipa.homelab.kubesoar.com \
           docker.io/freeipa/freeipa-server:almalinux-9-4.11.0 \
           ipa-server-install \
-          --realm KUBESOAR.DEV \
-          --domain kubesoar.dev \
-          --ds-password 'DirectoryManagerPass123' \
-          --admin-password 'AdminPass123' \
-          --hostname freeipa.kubesoar.dev \
-          --unattended --setup-dns --forwarder=1.1.1.1
+          --realm HOMELAB.KUBESOAR.COM \
+          --domain homelab.kubesoar.com \
+          --ds-password "yourpassword" \
+          --admin-password "yourpassword" \
+          --hostname freeipa.homelab.kubesoar.com \
+          --unattended --setup-dns --forwarder=9.9.9.9
+
 
 
 
