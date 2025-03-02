@@ -17,3 +17,11 @@
 
     - name: Install K3s Agent
       shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ groups['first_master_node'][0] }}:6443 K3S_TOKEN='{{ k3s_token }}' sh -"
+
+    - name: Ensure k3s-agent service is enabled and running
+      systemd:
+        name: k3s-agent
+        state: started
+        enabled: yes
+        daemon_reload: yes
+

@@ -28,7 +28,7 @@ write-kubeconfig-mode: "{{ write_kubeconfig_mode }}"
 {% if tls_san is defined and tls_san|length > 0 %}
 tls-san:
 {% for item in tls_san %}
-  - "{{ item }}"
+  - {{ item }}
 {% endfor %}
 {% endif %}
 
@@ -51,7 +51,7 @@ token: {{ token }}
 {% endif %}
 
 {% if selinux is defined %}
-selinux: {{ selinux }}
+selinux: {{ selinux | lower }}
 {% endif %}
 
 {% if datastore_endpoint is defined %}
@@ -60,4 +60,12 @@ datastore-endpoint: "{{ datastore_endpoint }}"
 
 {% if cluster_cidr is defined %}
 cluster-cidr: "{{ cluster_cidr }}"
+{% endif %}
+
+
+{% if kube_apiserver_arg is defined and kube_apiserver_arg|length > 0 %}
+kube-apiserver-arg:
+{% for arg in kube_apiserver_arg %}
+  - "{{ arg }}"
+{% endfor %}
 {% endif %}

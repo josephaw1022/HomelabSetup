@@ -5,12 +5,12 @@
 
   tasks:
     - name: Update machine
-      package:
+      ansible.builtin.package:
         name: '*'
         state: latest
 
     - name: Ensure required directories exist
-      file:
+      ansible.builtin.file:
         path: "{{ item }}"
         state: directory
         mode: '0755'
@@ -19,19 +19,21 @@
         - /var/lib/rancher/k3s/server/manifests
 
     - name: Apply K3s configuration template
-      template:
+      ansible.builtin.template:
         src: ../templates/config.yaml.j2
         dest: /etc/rancher/k3s/config.yaml
         mode: '0644'
 
-
+    - name: Remove any existing manifests
+      ansible.builtin.command: rm -rf /var/lib/rancher/k3s/server/manifests/*
+      ignore_errors: true
 
     - name: Copy K3s manifests to server
-      copy:
+      ansible.builtin.copy:
         src: "./k3s_manifests/"
         dest: "/var/lib/rancher/k3s/server/manifests"
         mode: '0644'
 
 
     - name: Install K3s
-      shell: curl -sfL https://get.k3s.io | sh -
+      ansible.builtin.shell: curl -sfL https://get.k3s.io | sh -

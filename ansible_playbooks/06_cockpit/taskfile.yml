@@ -1,0 +1,11 @@
+
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task --list-all
+  
+  install-cockpit:
+    cmds:
+      - ansible-playbook -i inventory.ini playbooks/install-cockpit.yaml

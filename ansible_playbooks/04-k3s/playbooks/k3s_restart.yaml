@@ -1,0 +1,11 @@
+
+- name: Restart K3s Node
+  hosts: k3s_nodes
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Restart K3s Service
+      ansible.builtin.systemd_service:
+        name: k3s
+        state: restarted

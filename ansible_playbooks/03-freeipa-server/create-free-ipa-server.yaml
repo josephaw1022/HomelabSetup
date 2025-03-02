@@ -71,9 +71,6 @@
           --hostname freeipa.homelab.kubesoar.com \
           --unattended --setup-dns --forwarder=9.9.9.9
 
-
-
-
     - name: Show the logs if FreeIPA install fails
       shell: |
         podman logs freeipa-server

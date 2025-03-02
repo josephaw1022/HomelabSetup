@@ -1,0 +1,26 @@
+---
+- name: Add package for cockpit
+  hosts: vms
+  become: true
+  tasks:
+    - name: Install cockpit
+      ansible.builtin.package:
+        name: cockpit
+        state: present
+      become: true
+
+    - name: Enable and start cockpit
+      ansible.builtin.service:
+        name: cockpit
+        state: started
+        enabled: true
+      become: true
+
+    - name: Open firewall for cockpit
+      ansible.posix.firewalld:
+        port: 9090
+        state: enabled
+        permanent: true
+        immediate: true
+      become: true
+      ignore_errors: true

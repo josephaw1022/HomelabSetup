@@ -4,11 +4,9 @@ kind: IPAddressPool
 metadata:
   name: default-pool
   namespace: metallb-system
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
 spec:
   addresses:
-    - 192.168.100.100-192.168.100.200
+    - 192.168.2.60-192.168.2.70
 
 ---
 
@@ -17,8 +15,8 @@ kind: L2Advertisement
 metadata:
   name: default-l2
   namespace: metallb-system
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
 spec:
   ipAddressPools:
     - default-pool
+  interfaces:
+  - eno1

@@ -1,0 +1,20 @@
+
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task --list-all
+  
+  k3s-cluster:
+    cmds:
+      - bash ./configure-k3s-homelab-cluster.sh
+
+  install-olm:
+    cmds:
+      - operator-sdk olm install
+  
+  install-cert-manager:
+    cmds:
+      - helm upgrade --wait --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.16.2 --set crds.enabled=true
+

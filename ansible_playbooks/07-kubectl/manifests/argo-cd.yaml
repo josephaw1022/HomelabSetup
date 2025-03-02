@@ -13,3 +13,17 @@ spec:
     configs:
       params:
         server.insecure: true
+
+    global:
+      domain: argo.k3s.homelab.kubesoar.com
+
+    server:
+      ingress:
+        enabled: true
+        ingressClassName: traefik
+        hostname: argo.k3s.homelab.kubesoar.com
+        tls: false
+
+    params:
+      server.insecure: true
+

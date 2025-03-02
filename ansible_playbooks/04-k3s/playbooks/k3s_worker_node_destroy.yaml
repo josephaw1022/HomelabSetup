@@ -12,3 +12,14 @@
       file:
         path: /etc/rancher/k3s
         state: absent
+
+    - name: Remove K3s data directory
+      file:
+        path: /var/lib/rancher/k3s
+        state: absent
+
+    - name: Stop k3s-agent service
+      systemd:
+        name: k3s-agent
+        state: stopped
+      ignore_errors: true
