@@ -1,47 +1,146 @@
+# Homelab Setup
 
-# Setup
 
-live at an apartment that provides wifi and they manage it. So, in order for me to setup my own homelab, I need a wifi router to connect to the apartment's wifi and then connect my devices to the router. So my apartments wifi ip range is 172.16.0.0/12. and with me not knowing or having any control over that, I need to setup my router to have a different ip range. I chose 192.168.0.0/16 as my ip range for my homelab with the subnet mask being 255.255.248.0 which gives us 0.0.7.255.
+```mermaid
+graph TD;
+  
+  subgraph "Apartment Network (172.16.0.0/12)"
+    ApartmentWiFi["Apartment Managed WiFi"]
+  end
 
-![Netgear Router UI](./homelab-setup/router-ip-range.png)
+  subgraph "Homelab Network (192.168.0.0/16)"
+    
+    Router["Netgear Nighthawk Router"]
+    ApartmentWiFi -->|WiFi Connection| Router
+    
+    Switch1["Linksys Unmanaged Switch #1"]
+    Switch2["Linksys Unmanaged Switch #2"]
+    Router -- Ethernet --> Switch1
+    Router -- Ethernet --> Switch2
 
-so our ip range is 192.168.0.0 - 192.168.7.255
+    subgraph "Devices"
+      Laptop["Personal Laptop (Fedora)"]
+      OldThinkPad["Old ThinkPad (RHEL 9.5)"]
+      Supermicro["Supermicro Server (RHEL 9.5)"]
+      DellServer["Dell PowerEdge (AlmaLinux 9.5)"]
 
-the reason I this range is because when I had the subnet mask as 255.255.0.0 , it was too big and interfered with the default vm network ip range. I would change the default vm network ip range but last time I did that, I had to completely reset my servers. So just to make it easier for now, I will use this range.
+      Switch1 -- Ethernet --> Laptop
+      Switch1 -- Ethernet --> OldThinkPad
+      Switch2 -- Ethernet --> Supermicro
+      Switch2 -- Ethernet --> DellServer
+    end
+  end
 
-![Cockpit UI](./homelab-setup/vm-default-ip-range.png)
+```
 
-so I have an ethernet wall plug in my office room. I connect my own netgear nighthawk router to that wall plug. I have two linkseys unmanaged switches that connect to the router. I then connect my all of my devices to those switches and they are now connected to the wifi. in order to access the router ui page, I simply navigate to <https://routerlogin.net/> in order to manage my netgear router.  
+I live in an apartment where the WiFi is managed by the building. To set up my own homelab, I needed a personal router that connects to the apartment’s WiFi and serves as a gateway for my devices. 
 
-Now for devices on this network, theres not that many. I have a my personal laptop whcih is a one year old lenevo thinkpad (one withy the copilot button on the keys 🤢), however, I am running fedora on this device. I also have a really old and thick lenevo thinkpad that is running rhel 9.5, a supermicro server running rhel 9.5, and a dell poweredge server running almalinux 9.5.
+Since I have no control over the apartment's IP range (`172.16.0.0/12`), I configured my router to use a different subnet. I chose `192.168.0.0/16` with a subnet mask of `255.255.248.0`, which provides an IP range of `192.168.0.0 - 192.168.7.255`.
 
-## Router Setup
+![Netgear Router UI](./ansible_playbooks/homelab-setup/router-ip-range.png)
 
-in order to make this lab stable, we need to assign static ip addresses to our servers. We can do this by going to the router's admin page and assigning static ip addresses to the servers mac addresses.
+I initially considered a `255.255.0.0` subnet, but it was too large and conflicted with the default VM network range. Changing the VM network range previously required resetting my servers, so I opted for this subnet to avoid that hassle.
 
-## Setting up vms with ssh key
+![Cockpit UI](./ansible_playbooks/homelab-setup/vm-default-ip-range.png)
 
-ok so we have a few vms that we want to manage and we don't want to have to use a password every time we want to ssh into them or run an ansible playbook on them. We can use ssh keys to make this process easier.
+### Network Topology
 
+- My office has an Ethernet wall port, which I connect to a **Netgear Nighthawk router**.
+- Two **Linksys unmanaged switches** connect to the router.
+- All homelab devices are wired to these switches, and they also have WiFi access.
+- To manage the router, I use [routerlogin.net](https://routerlogin.net/).
+
+### Devices
+
+| Device               | OS           |
+|----------------------|-------------|
+| **Laptop** (Lenovo ThinkPad) | Fedora 41  |
+| **Old ThinkPad** (Thick Model) | RHEL 9.5   |
+| **Supermicro Server** | RHEL 9.5   |
+| **Dell PowerEdge Server** | AlmaLinux 9.5 |
+
+---
+
+## Router Configuration
+
+For a stable setup, static IP addresses are assigned to all servers via the router’s admin panel. This ensures consistent networking, making it easier to manage services and access devices.
+
+---
+
+## Setting Up VMs with SSH Keys
+
+To avoid using passwords for SSH and Ansible automation, I configure SSH key authentication.
+
+### Removing Old SSH Keys:
 ```bash
 ssh-keygen -R 192.168.2.5
 ssh-keygen -R 192.168.2.6
 ssh-keygen -R 192.168.2.7
 ```
 
-this will remove the old ssh keys for the servers. Now we can generate new ssh keys for the servers.
-
+### Adding New SSH Keys:
 ```bash
 ssh-copy-id jwhiteaker@192.168.2.5
 ssh-copy-id jwhiteaker@192.168.2.6
 ssh-copy-id jwhiteaker@192.168.2.7
 ```
 
+---
 
-## Hosting Essential Services
+## Essential Services Hosting
 
-For hosting the absolute essential services for the homelab, I will be using the old thinkpad running rhel 9.5. You might be wondering why I am using the old thinkpad instead of the supermicro server. Well, the supermicro server is a bit loud and I don't want to have to listen to that all the time and it also uses a lot of power. The old thinkpad is quiet and uses less power meaning I can unplug the dell poweredge server and the supermicro server to reduce the power consumption of the homelab and reduce the noise while still being able to host the essential services.
+The **old ThinkPad running RHEL 9.5** serves as the primary node for essential services due to its lower power consumption and noise levels. This allows me to **power down the Dell PowerEdge and Supermicro servers** when not needed.
 
-So whats being hosted on the thinkpad?
+### Hosted Services:
+- **Cockpit** (on all servers)
+- **FreeIPA** (for DNS and authentication)
+- **Pi-hole** (for network-wide ad blocking)
+- **K3s Server Node** (for Kubernetes workloads)
 
-besides every server running cockpit, I am running freeipa, pi-hole, and a k3s server node on my thinkpad. Now I am using freeipa for its dns ability and the ability to configure credentials for all of my devices and services. I am using pi-hole to block ads on my network and I am using k3s to host my own kubernetes cluster.
+---
+
+## Homelab Architecture
+
+To visualize my setup, here’s a **Mermaid diagram** representing the homelab infrastructure:
+
+```mermaid
+graph TD;
+    subgraph "Private Network"
+        User["K8s User"] -->|Attempt Access| K3sCluster["K3s OIDC"];
+        WebUser["Web User"] -->|Connects to| WiFi;
+        WiFi -->|DNS Server| Pihole["Pi-hole"];
+        Pihole -->|Points to Ingress| NginxIngress["NGINX Ingress"];
+
+        K3sCluster -->|Auth Request| Keycloak;
+        Keycloak -->|Identity Verification| FreeIPA;
+        Keycloak -->|OIDC| ArgoCD;
+        FreeIPA -->|LDAP/IdP| Keycloak;
+    
+        ArgoCD -->|UI uses| NginxIngress;
+        NginxIngress -->|Https/TLS| Certificate;
+        NginxIngress -- "creates external DNS record" --> ExternalDNS;
+        ExternalDNS -- "manages A records" --> Pihole;
+        ClusterIssuer -- "Creates" --> Certificate;
+        TrustedCertificate -- "Used For" --> ClusterIssuer
+
+        subgraph "K3s Cluster"
+            Keycloak
+            ArgoCD["Argo behind Keycloak auth"]
+            NginxIngress
+            ExternalDNS["External DNS"]
+            TrustedCertificate["Trusted Certificate"]
+            ClusterIssuer["Cluster Issuer"]
+            Certificate["HTTPS Certificate"]
+        end
+    end
+```
+
+---
+
+## Future Plans
+
+- **Automating cluster deployments** using ArgoCD & Ansible
+- **Expanding Kubernetes workloads** with additional nodes
+- **Enhancing network security** with better firewall rules and VLANs
+
+This homelab allows me to **test, break, and experiment with new technologies** in a controlled environment while maintaining a stable setup for essential services.
