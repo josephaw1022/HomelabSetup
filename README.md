@@ -11,7 +11,7 @@ graph TD;
   subgraph "Homelab Network (192.168.0.0/16)"
     
     Router["Netgear Nighthawk Router"]
-    ApartmentWiFi -->|WiFi Connection| Router
+    ApartmentWiFi -->|Ethernet| Router
     
     Switch1["Linksys Unmanaged Switch #1"]
     Switch2["Linksys Unmanaged Switch #2"]
