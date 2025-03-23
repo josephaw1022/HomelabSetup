@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: argocd
+  namespace: kube-system
+spec:
+  repo: https://argoproj.github.io/argo-helm
+  chart: argo-cd
+  version: 7.8.2
+  targetNamespace: argocd
+  createNamespace: true
+  valuesContent: |-
+    configs:
+      params:
+        server.insecure: true
+
+    global:
+      domain: argocd.kubesoar.test
+
+    server:
+      ingress:
+        enabled: true
+        ingressClassName: nginx
+        hostname: argocd.kubesoar.test
+        tls: false
+
+    params:
+      server.insecure: true
