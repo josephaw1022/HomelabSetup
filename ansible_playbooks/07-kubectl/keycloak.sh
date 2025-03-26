@@ -30,7 +30,7 @@
 
 
 
-CUSTOM_DOMAIN="k3s.homelab.kubesoar.com"
+CUSTOM_DOMAIN="keycloak.kubesoar.test"
 
 
 helm upgrade --install my-keycloak bitnami/keycloak --version 24.4.11 --wait --timeout 15m \
@@ -45,14 +45,14 @@ auth:
 
 
 ingress:
-  ingressClassName: traefik
+  ingressClassName: nginx
   enabled: true
   hostnameStrict: false
-  hostname: keycloak.homelab.kubesoar.com
+  hostname: keycloak.kubesoar.test
 
   annotations:
-    kubernetes.io/ingress.class: traefik
-    cert-manager.io/cluster-issuer: ca-issuer
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: self-signed-issuer
 
   tls: true
   selfSigned: true
