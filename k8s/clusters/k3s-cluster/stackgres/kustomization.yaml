@@ -1,0 +1,4 @@
+
+resources:
+  - helm-chart.yaml
+  - ingress.yaml
