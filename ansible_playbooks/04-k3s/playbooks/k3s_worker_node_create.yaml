@@ -5,7 +5,7 @@
   tasks:
     - name: Set K3s token from vars file if defined
       set_fact:
-        k3s_token: "{{ token }}"
+        token: "{{ token }}"
       when: token is defined
 
 
@@ -16,7 +16,7 @@
       failed_when: false
 
     - name: Install K3s Agent
-      shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ groups['first_master_node'][0] }}:6443 K3S_TOKEN='{{ k3s_token }}' sh -"
+      shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ groups['first_master_node'][0] }}:6443 K3S_TOKEN='{{ token }}' sh -"
 
     - name: Ensure k3s-agent service is enabled and running
       systemd:

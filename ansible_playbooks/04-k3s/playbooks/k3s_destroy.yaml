@@ -1,5 +1,5 @@
 - name: Uninstall K3s Single Node Cluster
-  hosts: k3s_nodes
+  hosts: first_master_node:additional_servers
   become: true
 
   tasks:

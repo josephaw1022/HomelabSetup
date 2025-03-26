@@ -1,0 +1,31 @@
+- name: Join additional K3s server nodes to the cluster
+  hosts: additional_servers
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Update packages
+      ansible.builtin.package:
+        name: '*'
+        state: latest
+
+    - name: Ensure K3s config directory exists
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: '0755'
+
+    - name: Apply K3s config for joining server
+      ansible.builtin.template:
+        src: ../templates/config.yaml.j2
+        dest: /etc/rancher/k3s/config.yaml
+        mode: '0644'
+
+    - name: Join cluster as a server node
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --server https://{{ groups['k3s_nodes'][0] }}:6443" K3S_TOKEN={{ token }} sh -
+      environment:
+        K3S_URL: "https://{{ groups['k3s_nodes'][0] }}:6443"
+        K3S_TOKEN: "{{ token }}"
+      args:
+        creates: /usr/local/bin/k3s

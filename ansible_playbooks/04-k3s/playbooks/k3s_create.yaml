@@ -33,7 +33,7 @@
         src: "./k3s_manifests/"
         dest: "/var/lib/rancher/k3s/server/manifests"
         mode: '0644'
-
+      when: apply_manifests | default(false)
 
     - name: Install K3s
       ansible.builtin.shell: curl -sfL https://get.k3s.io | sh -

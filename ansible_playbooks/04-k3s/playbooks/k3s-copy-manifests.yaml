@@ -1,0 +1,34 @@
+- name: Copy new manifests and restart K3s on first master
+  hosts: k3s_nodes[0]
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Stop K3s service
+      ansible.builtin.systemd:
+        name: k3s
+        state: stopped
+
+    - name: Remove existing manifests
+      ansible.builtin.file:
+        path: /var/lib/rancher/k3s/server/manifests
+        state: absent
+      when: remove_existing_manifests | default(false)
+
+    - name: Recreate manifests directory
+      ansible.builtin.file:
+        path: /var/lib/rancher/k3s/server/manifests
+        state: directory
+        mode: '0755'
+
+    - name: Copy new K3s manifests
+      ansible.builtin.copy:
+        src: "./k3s_manifests/"
+        dest: "/var/lib/rancher/k3s/server/manifests"
+        mode: '0644'
+
+    - name: Start K3s service
+      ansible.builtin.systemd:
+        name: k3s
+        state: started
+

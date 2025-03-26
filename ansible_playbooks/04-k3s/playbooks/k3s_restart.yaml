@@ -1,6 +1,6 @@
 
 - name: Restart K3s Node
-  hosts: k3s_nodes
+  hosts: first_master_node:additional_servers:worker_nodes
   become: true
   gather_facts: false
 
