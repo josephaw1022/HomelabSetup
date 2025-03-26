@@ -6,7 +6,13 @@ write_kubeconfig_mode: "0644"
 selinux: true
 
 tls_san:
- - 192.168.2.21
+ - 192.168.2.34
+ - 192.168.122.24
+ - 192.168.2.30
+ - 192.168.2.31
+ - 192.168.122.236
+ - 192.168.2.33
+ - 192.168.122.143
 
 disable:
   - servicelb
@@ -24,3 +30,8 @@ token: 93889e98288eefd653c4ce0ac0debdd4ae4b366ec87f9ea13f2b5894dfdea9235aa64f37a
 #   - "oidc-client-id=kube-apiserver"
 #   - "oidc-username-claim=email"
 #   - "oidc-groups-claim=groups"
+
+
+
+apply_manifests: false
+remove_existing_manifests: false
