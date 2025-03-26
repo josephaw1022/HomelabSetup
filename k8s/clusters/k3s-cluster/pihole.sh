@@ -10,15 +10,24 @@ helm upgrade --install my-pihole mojo2600/pihole \
   --namespace pihole \
   --create-namespace \
   --values - <<EOF
+
+
 adminPassword: "changeme"
 
+podDnsConfig:
+  enabled: true
+  policy: "None"
+  nameservers:
+  - 127.0.0.1
+  - 9.9.9.9
 
 dnsmasq:
   # -- Load custom user configuration files from /etc/dnsmasq.d
   enableCustomDnsMasq: true
 
   customDnsEntries:
-    - address=/foo.bar/192.168.2.119
+    - address=/kubesoar.test/192.168.2.100
+    - address=/gateway.test/168.168.2.101
 
 persistentVolumeClaim:
   enabled: true
@@ -31,6 +40,7 @@ ingress:
   ingressClassName: nginx
   annotations:
     cert-manager.io/cluster-issuer: self-signed-issuer
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
     - pihole.kubsoar.test
   tls:
