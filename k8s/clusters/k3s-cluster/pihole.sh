@@ -27,7 +27,7 @@ dnsmasq:
 
   customDnsEntries:
     - address=/kubesoar.test/192.168.2.100
-    - address=/gateway.test/168.168.2.101
+    - address=/gateway.test/192.168.2.101
 
 persistentVolumeClaim:
   enabled: true
