@@ -22,6 +22,16 @@ tasks:
 
     cmds:
       - ansible-playbook -i inventory.ini playbooks/k3s_destroy.yaml -e "@vars/k3s-server-node-config.yaml"
+  
+  master-copy-manifests:
+    description: "Copy new manifests and restart K3s on first master"
+    cmds:
+      - ansible-playbook -i inventory.ini playbooks/k3s-copy-manifests.yaml -e "@vars/k3s-server-node-config.yaml"
+
+  master-add:
+    description: "Add Additional K3s Server Nodes"
+    cmds:
+      - ansible-playbook -i inventory.ini playbooks/k3s_add_server.yaml -e "@vars/k3s-server-node-config.yaml"
 
   worker-build:
     description: "Build the K3s Worker Node"
