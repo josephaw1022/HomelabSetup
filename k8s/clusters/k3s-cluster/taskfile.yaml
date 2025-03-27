@@ -1,0 +1,161 @@
+version: '3'
+
+tasks:
+
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list-all
+
+  olm-install:
+    desc: Install Operator Lifecycle Manager (OLM) v0.31.0
+    cmds:
+      - curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.31.0/install.sh | bash -s v0.31.0
+
+  tekton-operator-install:
+    desc: Install Tekton Operator from OperatorHub
+    cmds:
+      - kubectl create -f https://operatorhub.io/install/tektoncd-operator.yaml 
+
+  tekton-operator-uninstall:
+    desc: Uninstall Tekton Operator
+    cmds:
+      - kubectl delete -f https://operatorhub.io/install/tektoncd-operator.yaml
+
+  shipwright-operator-install:
+    desc: Install Shipwright Operator from OperatorHub
+    cmds:
+      - kubectl create -f https://operatorhub.io/install/shipwright-operator.yaml
+
+  shipwright-operator-uninstall:
+    desc: Uninstall Shipwright Operator
+    cmds:
+      - kubectl delete -f https://operatorhub.io/install/shipwright-operator.yaml
+
+  keycloak-install:
+    desc: Install Keycloak using custom script
+    cmds:
+      - bash ./keycloak.sh
+
+  keycloak-uninstall:
+    desc: Uninstall Keycloak Helm release
+    cmds:
+      - helm uninstall keycloak -n keycloak
+
+  rabbitmq-install:
+    desc: Install RabbitMQ Cluster Operator from official YAML
+    cmds:
+      - kubectl apply -f "https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml"
+
+  rabbitmq-uninstall:
+    desc: Uninstall RabbitMQ Cluster Operator
+    cmds:
+      - kubectl delete -f "https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml"
+
+  redis-install:
+    desc: Install Redis Operator via Helm from ot-helm repo
+    cmds:
+      - helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/
+      - helm upgrade redis-operator ot-helm/redis-operator --install --namespace ot-operators
+
+  redis-uninstall:
+    desc: Uninstall Redis Operator and remove namespace
+    cmds:
+      - helm uninstall redis-operator -n ot-operators
+      - kubectl delete ns ot-operators
+
+  awx-install:
+    desc: Install AWX Operator using Helm chart
+    cmds:
+      - helm repo add awx-operator https://ansible-community.github.io/awx-operator-helm/
+      - helm repo update
+      - helm upgrade --install awx-operator awx-operator/awx-operator -n awx --create-namespace
+
+  awx-uninstall:
+    desc: Uninstall AWX Operator and clean up namespace
+    cmds:
+      - helm uninstall awx-operator -n awx
+      - kubectl delete ns awx
+
+  postgres-crunchy-install:
+    desc: Install CrunchyData Postgres Operator using remote Kustomize
+    cmds:
+      - kubectl apply -k "https://raw.githubusercontent.com/CrunchyData/postgres-operator-examples/main/kustomize/install/namespace"
+      - kubectl apply --server-side -k "https://raw.githubusercontent.com/CrunchyData/postgres-operator-examples/main/kustomize/install/default"
+
+  postgres-crunchy-uninstall:
+    desc: Uninstall CrunchyData Postgres Operator and delete namespace
+    cmds:
+      - kubectl delete --ignore-not-found -k "https://raw.githubusercontent.com/CrunchyData/postgres-operator-examples/main/kustomize/install/default"
+      - kubectl delete namespace postgres-operator
+
+  kyverno-install:
+    desc: Install Kyverno admission controller
+    cmds:
+      - kubectl create -f https://github.com/kyverno/kyverno/releases/download/v1.13.0/install.yaml
+
+  kyverno-uninstall:
+    desc: Uninstall Kyverno
+    cmds:
+      - kubectl delete -f https://github.com/kyverno/kyverno/releases/download/v1.13.0/install.yaml
+
+  longhorn-install:
+    desc: Install Longhorn storage platform
+    cmds:
+      - kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.8.1/deploy/longhorn.yaml
+
+  longhorn-uninstall:
+    desc: Uninstall Longhorn storage platform
+    cmds:
+      - kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/v1.8.1/deploy/longhorn.yaml
+
+  kyverno-policy-ui-install:
+    desc: Install Policy Reporter UI for Kyverno with NGINX ingress
+    cmds:
+      - helm repo add policy-reporter https://policy-reporter.github.io/helm-charts
+      - helm repo update
+      - helm upgrade --install policy-reporter policy-reporter/policy-reporter \
+          --create-namespace -n policy-reporter \
+          --set ui.enabled=true \
+          --set plugin.kyverno.enabled=true \
+          --set ingress.enabled=true \
+          --set ingress.className=nginx
+
+  kyverno-policy-ui-uninstall:
+    desc: Uninstall Policy Reporter UI and clean up namespace
+    cmds:
+      - helm uninstall policy-reporter -n policy-reporter
+      - kubectl delete namespace policy-reporter
+
+  istio-install:
+    desc: Install Istio with default profile using istioctl
+    cmds:
+      - istioctl install {{.CLI_ARGS | default "--set profile=default -y" }}
+
+  istio-uninstall:
+    desc: Uninstall Istio and purge istioctl configuration
+    cmds:
+      - istioctl uninstall -y --purge
+      - kubectl delete namespace istio-system
+
+  gateway-crds-install:
+    desc: Install Gateway API CRDs from Project Contour
+    cmds:
+      - kubectl apply -f https://raw.githubusercontent.com/projectcontour/contour/release-1.30/examples/gateway/00-crds.yaml
+
+  gateway-crds-uninstall:
+    desc: Uninstall Gateway API CRDs
+    cmds:
+      - kubectl delete -f https://raw.githubusercontent.com/projectcontour/contour/release-1.30/examples/gateway/00-crds.yaml
+
+  linkerd-install:
+    desc: Install Linkerd CRDs and control plane
+    cmds:
+      - linkerd install --crds | kubectl apply -f -
+      - linkerd install | kubectl apply -f -
+
+  linkerd-uninstall:
+    desc: Uninstall Linkerd and remove CRDs
+    cmds:
+      - linkerd uninstall | kubectl delete -f -
+      - kubectl delete -f https://raw.githubusercontent.com/linkerd/linkerd2/stable/install/namespace.yaml --ignore-not-found
