@@ -14,23 +14,24 @@ helm upgrade --install my-pihole mojo2600/pihole \
 
 adminPassword: "changeme"
 
-podDnsConfig:
-  enabled: true
-  policy: "None"
-  nameservers:
-  - 127.0.0.1
-  - 9.9.9.9
+
 
 dnsmasq:
   # -- Load custom user configuration files from /etc/dnsmasq.d
   enableCustomDnsMasq: true
+
+  customSettings:
+  - listen-address=0.0.0.0
+
+
+
 
   customDnsEntries:
     - address=/kubesoar.test/192.168.2.100
     - address=/gateway.test/192.168.2.101
 
 persistentVolumeClaim:
-  enabled: true
+  enabled: false
 
 serviceDhcp:
   enabled: false
