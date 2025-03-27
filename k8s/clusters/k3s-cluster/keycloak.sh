@@ -1,39 +1,9 @@
 #! /bin/bash
 
-
-
-# kubectl delete -f https://operatorhub.io/install/keycloak-operator.yaml
-
-# kubectl wait --for=condition=available deployment/my-keycloak-operator-controller-manager -n my-keycloak-operator --timeout=300s
-
-# kubectl apply -f - <<EOF
-# apiVersion: k8s.keycloak.org/v2alpha1
-# kind: Keycloak
-# metadata:
-#   name: example-keycloak
-#   namespace: my-keycloak-operator
-#   labels:
-#     app: sso
-# spec:
-#   instances: 1
-#   hostname:
-#     hostname: keycloak.k3s.homelab.kubesoar.com
-#   http:
-#     httpEnabled: true
-
-
-#   networkPolicy:
-#     enabled: false
-# EOF
-
-
-
-
-
 CUSTOM_DOMAIN="keycloak.kubesoar.test"
 
 
-helm upgrade --install my-keycloak bitnami/keycloak --version 24.4.11 --wait --timeout 15m \
+helm upgrade --install keycloak bitnami/keycloak --version 24.4.11 --wait --timeout 15m \
   --namespace keycloak --create-namespace --values - <<EOF
 auth:
   createAdminUser: true
