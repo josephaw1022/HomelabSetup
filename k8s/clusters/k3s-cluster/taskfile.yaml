@@ -159,3 +159,30 @@ tasks:
     cmds:
       - linkerd uninstall | kubectl delete -f -
       - kubectl delete -f https://raw.githubusercontent.com/linkerd/linkerd2/stable/install/namespace.yaml --ignore-not-found
+
+
+  vault-operator-install:
+    desc: Install Vault Operator
+    cmds:
+    - kubectl create ns vault || true
+    - kubectl config set-context --current --namespace=vault
+    - helm upgrade --install --wait vault-operator oci://ghcr.io/bank-vaults/helm-charts/vault-operator --namespace vault --create-namespace
+
+  vault-operator-uninstall:
+    desc: Uninstall Vault Operator
+    cmds:
+    - helm uninstall vault-operator -n vault
+    - kubectl delete ns vault --ignore-not-found
+
+  vault-instance-install:
+    desc: Install Vault instance
+    cmds:
+      - kubectl create ns vault --ignore-exists
+      - |
+        kubectl kustomize https://github.com/bank-vaults/vault-operator/deploy/rbac |
+          sed 's/namespace: default/namespace: vault/' |
+          kubectl apply -f -
+      - |
+        curl -sSL https://raw.githubusercontent.com/bank-vaults/vault-operator/v1.21.0/deploy/examples/cr-raft.yaml |
+          sed 's/namespace: default/namespace: vault/' |
+          kubectl apply -f -
