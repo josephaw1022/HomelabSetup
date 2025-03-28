@@ -1,0 +1,27 @@
+
+
+version: '3'
+
+
+tasks:
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list-all
+
+  dashy-start:
+    desc: Start Dashy Dashboard
+    cmds:
+      - |
+        docker run -d \
+          -p 8080:8080 \
+          -v ./my-dashboard.yaml:/app/user-data/conf.yml:Z \
+          --name my-dashboard \
+          --restart=always \
+          docker.io/lissy93/dashy:latest
+
+  dashy-stop:
+    desc: Stop Dashy Dashboard
+    cmds:
+      - docker stop my-dashboard
+      - docker rm my-dashboard

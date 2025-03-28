@@ -1,0 +1,137 @@
+appConfig:
+  theme: one-dark
+  customColors:
+    material-dark-original:
+      primary: '#f36558'
+      background: '#39434C'
+      background-darker: '#eb615c'
+      material-light: '#f36558'
+      item-text-color: '#ff948a'
+      curve-factor: 5px
+  enableErrorReporting: true
+  layout: horizontal
+  iconSize: large
+  language: en
+pageInfo:
+  title: Joseph Whiteaker Homelab
+  description: K3s Kubernetes Cluster Dashboard
+  navLinks:
+    - title: GitHub
+      path: https://github.com/josephaw1022/HomelabSetup
+    - title: Documentation
+      path: https://dashy.to/docs
+  footerText: ''
+sections:
+  - name: Servers/Laptops in Homelab
+    icon: fas fa-monitor-heart-rate
+    items:
+      - title: Desktop Server
+        description: SuperMicro Server
+        icon: mdi-redhat
+        id: 0_2507_desktopserver
+        url: https://desktop-server.kubesoar.com:9090
+      - title: Laptop Server
+        description: Old Thinkpad Server
+        icon: mdi-redhat
+        id: 1_2507_laptopserver
+        url: https://laptop-server.kubesoar.com:9090
+      - title: Fedora Workstation
+        description: Personal Workstation
+        icon: mdi-fedora
+        id: 2_2507_fedoraworkstation
+        url: https://localhost:9090
+
+  - name: Virtual Machines
+    icon: fas fa-server
+    items:
+      - title: PiHole VM (Cockpit)
+        description: Home DNS Server
+        icon: cib-cockpit
+        id: 0_2507_pihole
+        url: https://pihole.kubesoar.com:9090
+      - title: PiHole VM (PiHole)
+        description: Home DNS Server
+        icon: mdi-pi-hole
+        id: 1_2507_pihole
+        url: https://pihole.kubesoar.com/admin
+      - title: K3s Server 1
+        description: Kubernetes Master Node
+        icon: mdi-server
+        id: 1_2507_k3smaster
+        url: https://192.168.2.30:9090
+      - title: K3s Server 2
+        description: Kubernetes Master Node
+        icon: mdi-server
+        id: 1_2507_k3smaster
+        url: https://192.168.2.31:9090
+      - title: K3s Server 3
+        description: Kubernetes Master Node
+        icon: mdi-server
+        id: 1_2507_k3smaster
+        url: https://192.168.2.33:9090
+
+  - name: Kubernetes Cluster
+    icon: mdi-kubernetes
+    items:
+      - title: Keycloak
+        description: Keycloak Identity Server
+        icon: favicon
+        id: 0_2507_keycloak
+        url: https://keycloak.kubesoar.test
+      
+      - title: Tekton Dashboard
+        description: Tekton Pipelines Dashboard
+        icon: favicon
+        id: 1_2507_tekton
+        url: https://tekton.kubesoar.test
+
+      - title: Policy Reporter
+        description: Kyverno Policy Reporting
+        icon: mdi-shield-account
+        id: 2_2507_policyreporter
+        url: https://policy-reporter.kubesoar.test
+
+      - title: Vault
+        description: Hashicorp Vault
+        icon: favicon
+        id: 3_2507_vault
+        url: https://vault.kubesoar.test
+
+  - name: Learn more about Dashy
+    icon: fas fa-rocket
+    displayData:
+      collapsed: true
+    items:
+      - title: GitHub
+        description: Source Code, Issues and Pull Requests
+        url: https://github.com/lissy93/dashy
+        icon: fab fa-github-alt
+        id: 0_2073_github
+      - title: Docs
+        description: Configuring & Usage Documentation
+        provider: Dashy.to
+        icon: far fa-book
+        url: https://dashy.to/docs
+        id: 1_2073_docs
+      - title: Showcase
+        description: See how others are using Dashy
+        url: https://github.com/Lissy93/dashy/blob/master/docs/showcase.md
+        icon: far fa-grin-hearts
+        id: 2_2073_showcase
+      - title: Config Docs
+        description: See full list of configuration options
+        url: https://github.com/Lissy93/dashy/blob/master/docs/configuring.md
+        icon: fas fa-wrench
+        id: 3_2073_configdocs
+      - title: Demo 2
+        description: Project management links for Dashy
+        icon: fas fa-sparkles
+        url: https://live.dashy.to/
+        target: newtab
+        id: 4_2073_demo
+      - title: Demo 3
+        description: Live deployment of development env
+        icon: far fa-sparkles
+        url: https://dev.dashy.to/
+        target: newtab
+        id: 5_2073_demo
