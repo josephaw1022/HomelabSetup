@@ -42,20 +42,34 @@ tasks:
     cmds:
       - helm uninstall keycloak -n keycloak
 
-  rabbitmq-install:
+  rabbitmq-cluster-install:
     desc: Install RabbitMQ Cluster Operator from official YAML
     cmds:
       - kubectl apply -f "https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml"
 
-  rabbitmq-uninstall:
+  rabbitmq-cluster-uninstall:
     desc: Uninstall RabbitMQ Cluster Operator
     cmds:
       - kubectl delete -f "https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml"
 
-  redis-install:
-    desc: Install Redis Operator via Helm from ot-helm repo
+  rabbitmq-topology-install:
+    desc: Install RabbitMQ Topology Operator from official YAML
+    cmds:
+      - kubectl apply -f https://github.com/rabbitmq/messaging-topology-operator/releases/latest/download/messaging-topology-operator-with-certmanager.yaml
+
+  rabbitmq-topology-uninstall:
+    desc: Uninstall RabbitMQ Topology Operator
+    cmds:
+      - kubectl delete -f https://github.com/rabbitmq/messaging-topology-operator/releases/latest/download/messaging-topology-operator-with-certmanager.yaml
+
+  redis-helm-repo:
+    desc: Add Redis Operator Helm repo
     cmds:
       - helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/
+
+  redis-install:
+    desc: Install Redis Operator via Helm
+    cmds:
       - helm upgrade redis-operator ot-helm/redis-operator --install --namespace ot-operators
 
   redis-uninstall:
@@ -64,11 +78,15 @@ tasks:
       - helm uninstall redis-operator -n ot-operators
       - kubectl delete ns ot-operators
 
-  awx-install:
-    desc: Install AWX Operator using Helm chart
+  awx-helm-repo:
+    desc: Add AWX Operator Helm repo
     cmds:
       - helm repo add awx-operator https://ansible-community.github.io/awx-operator-helm/
       - helm repo update
+
+  awx-install:
+    desc: Install AWX Operator using Helm
+    cmds:
       - helm upgrade --install awx-operator awx-operator/awx-operator -n awx --create-namespace
 
   awx-uninstall:
@@ -92,7 +110,12 @@ tasks:
   kyverno-install:
     desc: Install Kyverno admission controller
     cmds:
-      - kubectl create -f https://github.com/kyverno/kyverno/releases/download/v1.13.0/install.yaml
+      - |
+        if ! kubectl get ns kyverno >/dev/null 2>&1; then
+          kubectl create -f https://github.com/kyverno/kyverno/releases/download/v1.13.0/install.yaml
+        else
+          echo "Kyverno is already installed."
+        fi
 
   kyverno-uninstall:
     desc: Uninstall Kyverno
@@ -109,17 +132,41 @@ tasks:
     cmds:
       - kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/v1.8.1/deploy/longhorn.yaml
 
+  kyverno-policy-ui-helm-repo:
+    desc: Add Policy Reporter Helm repo
+    cmds:
+      - helm repo add policy-reporter https://policy-reporter.github.io/helm-charts || true
+      - helm repo update
+
   kyverno-policy-ui-install:
     desc: Install Policy Reporter UI for Kyverno with NGINX ingress
     cmds:
-      - helm repo add policy-reporter https://policy-reporter.github.io/helm-charts
-      - helm repo update
-      - helm upgrade --install policy-reporter policy-reporter/policy-reporter \
+      - |
+         helm upgrade --install policy-reporter policy-reporter/policy-reporter \
           --create-namespace -n policy-reporter \
-          --set ui.enabled=true \
-          --set plugin.kyverno.enabled=true \
-          --set ingress.enabled=true \
-          --set ingress.className=nginx
+          --values - <<EOF
+          ui:
+            enabled: true
+            ingress:
+              enabled: true
+              className: nginx
+              annotations:
+                nginx.ingress.kubernetes.io/rewrite-target: /
+                cert-manager.io/cluster-issuer: self-signed-issuer
+              hosts:
+                - host: policy-reporter.kubesoar.test
+                  paths:
+                  - path: /
+                    pathType: Prefix
+              tls:
+                - secretName: policy-reporter-tls
+                  hosts:
+                    - policy-reporter.kubesoar.test
+          plugin:
+            kyverno:
+              enabled: true
+          
+         EOF
 
   kyverno-policy-ui-uninstall:
     desc: Uninstall Policy Reporter UI and clean up namespace
@@ -160,29 +207,91 @@ tasks:
       - linkerd uninstall | kubectl delete -f -
       - kubectl delete -f https://raw.githubusercontent.com/linkerd/linkerd2/stable/install/namespace.yaml --ignore-not-found
 
-
   vault-operator-install:
     desc: Install Vault Operator
     cmds:
-    - kubectl create ns vault || true
-    - kubectl config set-context --current --namespace=vault
-    - helm upgrade --install --wait vault-operator oci://ghcr.io/bank-vaults/helm-charts/vault-operator --namespace vault --create-namespace
+      - kubectl config set-context --current --namespace=default
+      - helm upgrade --install --wait vault-operator oci://ghcr.io/bank-vaults/helm-charts/vault-operator --namespace default --create-namespace
 
   vault-operator-uninstall:
     desc: Uninstall Vault Operator
     cmds:
-    - helm uninstall vault-operator -n vault
-    - kubectl delete ns vault --ignore-not-found
+      - kubectl kustomize https://github.com/bank-vaults/vault-operator/deploy/rbac | kubectl delete -f -
+      - helm uninstall vault-operator -n default
 
   vault-instance-install:
     desc: Install Vault instance
     cmds:
-      - kubectl create ns vault --ignore-exists
+      - kubectl kustomize https://github.com/bank-vaults/vault-operator/deploy/rbac | kubectl apply -n default -f -
+      - kubectl apply -f https://raw.githubusercontent.com/bank-vaults/vault-operator/v1.21.0/deploy/examples/cr-raft.yaml -n default
       - |
-        kubectl kustomize https://github.com/bank-vaults/vault-operator/deploy/rbac |
-          sed 's/namespace: default/namespace: vault/' |
-          kubectl apply -f -
-      - |
-        curl -sSL https://raw.githubusercontent.com/bank-vaults/vault-operator/v1.21.0/deploy/examples/cr-raft.yaml |
-          sed 's/namespace: default/namespace: vault/' |
-          kubectl apply -f -
+        kubectl patch ingress vault \
+          -n default \
+          --type=merge \
+          -p '
+        metadata:
+          annotations:
+            cert-manager.io/cluster-issuer: self-signed-issuer
+            kubernetes.io/ingress.class: nginx
+        spec:
+          rules:
+            - host: vault.kubesoar.test
+              http:
+                paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                      service:
+                        name: vault
+                        port:
+                          number: 8200
+          tls:
+            - hosts:
+                - vault.kubesoar.test
+              secretName: vault-tls
+        '
+
+
+  vault-instance-uninstall:
+    desc: Uninstall Vault instance
+    cmds:
+      - kubectl delete -f https://raw.githubusercontent.com/bank-vaults/vault-operator/v1.21.0/deploy/examples/cr-raft.yaml
+      - kubectl kustomize https://github.com/bank-vaults/vault-operator/deploy/rbac | kubectl delete -f -
+
+
+  keda-helm-repo:
+    desc: Add KEDA Helm repo
+    cmds:
+      - helm repo add kedacore https://kedacore.github.io/charts
+      - helm repo update
+  
+  keda-install:
+    desc: Install KEDA using Helm
+    cmds:
+      - helm upgrade --install keda kedacore/keda --namespace keda --create-namespace
+
+  
+  keda-uninstall:
+    desc: Uninstall KEDA and remove namespace
+    cmds:
+      - kubectl delete $(kubectl get scaledobjects.keda.sh,scaledjobs.keda.sh -A \
+        -o jsonpath='{"-n "}{.items[*].metadata.namespace}{" "}{.items[*].kind}{"/"}{.items[*].metadata.name}{"\n"}')
+
+      - helm uninstall keda -n keda
+      - kubectl delete ns keda
+
+  eso-helm-repo:
+    cmds:
+    - helm repo add external-secrets https://charts.external-secrets.io
+
+  eso-install:
+    cmds:
+    - helm install external-secrets \
+       external-secrets/external-secrets \
+        -n external-secrets \
+        --create-namespace \
+
+  eso-uninstall:
+    cmds:
+    - helm uninstall external-secrets -n external-secrets
+    - kubectl delete ns external-secrets
