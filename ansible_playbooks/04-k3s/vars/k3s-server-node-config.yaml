@@ -1,4 +1,4 @@
-cluster_init: true
+# cluster_init: true
 
 
 write_kubeconfig_mode: "0644"
@@ -32,6 +32,10 @@ token: 93889e98288eefd653c4ce0ac0debdd4ae4b366ec87f9ea13f2b5894dfdea9235aa64f37a
 #   - "oidc-groups-claim=groups"
 
 
+datastore_endpoint: "postgresql://postgres:pg-password@laptop-server.kubesoar.com:5432/k3s"
+
+embedded_registry: true
+
 
 apply_manifests: false
-remove_existing_manifests: false
+remove_existing_manifests: true
