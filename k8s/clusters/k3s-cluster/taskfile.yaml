@@ -262,7 +262,7 @@ tasks:
   keda-helm-repo:
     desc: Add KEDA Helm repo
     cmds:
-      - helm repo add kedacore https://kedacore.github.io/charts
+      - helm repo add kedacore https://kedacore.github.io/charts || true 
       - helm repo update
   
   keda-install:
@@ -282,7 +282,8 @@ tasks:
 
   eso-helm-repo:
     cmds:
-    - helm repo add external-secrets https://charts.external-secrets.io
+    - helm repo add external-secrets https://charts.external-secrets.io || true
+    - helm repo update
 
   eso-install:
     cmds:
@@ -295,3 +296,153 @@ tasks:
     cmds:
     - helm uninstall external-secrets -n external-secrets
     - kubectl delete ns external-secrets
+  argocd-helm-repo:
+    desc: Add ArgoCD Helm repo
+    cmds:
+      - helm repo add argo https://argoproj.github.io/argo-helm || true
+      - helm repo update
+
+  argocd-install:
+    desc: Install ArgoCD via Helm
+    cmds:
+      - |
+         helm upgrade --install argocd argo/argo-cd \
+          --create-namespace -n argocd \
+          --version 7.8.2 \
+          --values - <<EOF
+          configs:
+            params:
+              server.insecure: true
+          global:
+            domain: argocd.kubesoar.test
+          server:
+            ingress:
+              enabled: true
+              ingressClassName: nginx
+              hostname: argocd.kubesoar.test
+              tls: false
+          params:
+            server.insecure: true
+         EOF
+
+  argocd-uninstall:
+    desc: Uninstall ArgoCD
+    cmds:
+      - helm uninstall argocd -n argocd
+      - kubectl delete ns argocd
+
+
+  cert-manager-helm-repo:
+    desc: Add Cert-Manager Helm repo
+    cmds:
+      - helm repo add jetstack https://charts.jetstack.io || true
+      - helm repo update
+
+  cert-manager-install:
+    desc: Install Cert-Manager via Helm
+    cmds:
+      - |
+         helm upgrade --install cert-manager jetstack/cert-manager \
+          --create-namespace -n cert-manager \
+          --values - <<EOF
+          crds:
+            enabled: true
+         EOF
+
+  cert-manager-uninstall:
+    desc: Uninstall Cert-Manager
+    cmds:
+      - helm uninstall cert-manager -n cert-manager
+      - kubectl delete ns cert-manager
+
+  metallb-helm-repo:
+    desc: Add MetalLB Helm repo
+    cmds:
+      - helm repo add metallb https://metallb.github.io/metallb || true
+      - helm repo update
+
+  metallb-install:
+    desc: Install MetalLB via Helm
+    cmds:
+      - |
+         helm upgrade --install metallb metallb/metallb \
+          --create-namespace -n metallb-system
+
+  metallb-uninstall:
+    desc: Uninstall MetalLB
+    cmds:
+      - helm uninstall metallb -n metallb-system
+      - kubectl delete ns metallb-system
+
+
+  monitoring-helm-repo:
+    desc: Add Prometheus Community Helm repo
+    cmds:
+      - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
+      - helm repo update
+
+  monitoring-install:
+    desc: Install kube-prometheus-stack via Helm
+    cmds:
+      - |
+         helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+          --create-namespace -n monitoring \
+          --version 70.2.1
+
+  monitoring-uninstall:
+    desc: Uninstall kube-prometheus-stack
+    cmds:
+      - helm uninstall kube-prometheus-stack -n monitoring
+      - kubectl delete ns monitoring
+
+
+  nginx-gateway-helm-repo:
+    desc: Add NGINX Gateway Fabric OCI repo
+    cmds:
+      - helm repo add nginx-gateway oci://ghcr.io/nginx/charts || true
+      - helm repo update
+
+  nginx-gateway-install:
+    desc: Install NGINX Gateway Fabric via Helm
+    cmds:
+      - |
+         helm upgrade --install nginx-gateway-fabric nginx-gateway/nginx-gateway-fabric \
+          --create-namespace -n nginx-gateway \
+          --version 1.6.2 \
+          --values - <<EOF
+          service:
+            loadBalancerIP: 192.168.2.101
+         EOF
+
+  nginx-gateway-uninstall:
+    desc: Uninstall NGINX Gateway Fabric
+    cmds:
+      - helm uninstall nginx-gateway-fabric -n nginx-gateway
+      - kubectl delete ns nginx-gateway
+
+  nginx-ingress-helm-repo:
+    desc: Add Ingress-NGINX Helm repo
+    cmds:
+      - helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
+      - helm repo update
+
+  nginx-ingress-install:
+    desc: Install NGINX Ingress Controller via Helm
+    cmds:
+      - |
+         helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+          --create-namespace -n ingress-nginx \
+          --values - <<EOF
+          controller:
+            ingressClassResource:
+              default: true
+            service:
+              type: LoadBalancer
+              loadBalancerIP: 192.168.2.100
+         EOF
+
+  nginx-ingress-uninstall:
+    desc: Uninstall NGINX Ingress Controller
+    cmds:
+      - helm uninstall ingress-nginx -n ingress-nginx
+      - kubectl delete ns ingress-nginx
