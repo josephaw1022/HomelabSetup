@@ -87,13 +87,40 @@ tasks:
   awx-install:
     desc: Install AWX Operator using Helm
     cmds:
-      - helm upgrade --install awx-operator awx-operator/awx-operator -n awx --create-namespace
+      - |
+        helm upgrade --install awx-operator awx-operator/awx-operator \
+          --namespace awx --create-namespace \
+          --values - <<EOF
+        AWX:
+          enabled: true
+          name: awx
+          spec:
+            admin_user: admin
+            ingress_class_name: nginx
+            ingress_type: Ingress
+            ingress_hosts:
+              - hostname: awx.kubesoar.test
+            ingress_path: /
+            ingress_tls_secret: awx-tls
+            ingress_annotations: |
+              cert-manager.io/cluster-issuer: self-signed-issuer
 
+
+          postgres:
+            enabled: true
+            host: laptop-server.kubesoar.com
+            port: 5432
+            dbName: awx
+            username: awx
+            password: awx
+            sslmode: prefer
+        EOF
   awx-uninstall:
     desc: Uninstall AWX Operator and clean up namespace
     cmds:
-      - helm uninstall awx-operator -n awx
+      - helm uninstall awx-operator -n awx --wait
       - kubectl delete ns awx
+      - kubectl delete crd $(kubectl get crd | grep awx.ansible.com | awk '{print $1}')
 
   postgres-crunchy-install:
     desc: Install CrunchyData Postgres Operator using remote Kustomize
