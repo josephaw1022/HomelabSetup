@@ -21,6 +21,13 @@
         dest: /etc/rancher/k3s/config.yaml
         mode: '0644'
 
+    - name: Add the registries yaml file to the server
+      ansible.builtin.template:
+        src: ../templates/registries.yaml.j2
+        dest: /etc/rancher/k3s/registries.yaml
+        mode: '0644'
+      when: embedded_registry | default(false)
+
     - name: Join cluster as a server node
       ansible.builtin.shell: |
         curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --server https://{{ groups['k3s_nodes'][0] }}:6443" K3S_TOKEN={{ token }} sh -

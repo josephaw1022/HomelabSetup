@@ -75,11 +75,4 @@ kube-apiserver-arg:
 {% if embedded_registry is defined %}
 embedded-registry: {{ embedded_registry | lower }}
 
-mirrors:
-  docker.io:
-  registry.k8s.io:
-  quay.io:
-  ghcr.io:
-  k8s.gcr.io:
-
 {% endif %}

@@ -25,7 +25,7 @@
         mode: '0644'
 
     - name: Remove any existing manifests
-      ansible.builtin.command: rm -rf /var/lib/rancher/k3s/server/manifests/*
+      ansible.builtin.command: rm -rf /var/lib/rancher/k3s/server/manifests/* || true
       ignore_errors: true
 
     - name: Copy K3s manifests to server
@@ -34,6 +34,14 @@
         dest: "/var/lib/rancher/k3s/server/manifests"
         mode: '0644'
       when: apply_manifests | default(false)
+
+    - name: Add the registries yaml file to the server
+      ansible.builtin.template:
+        src: ../templates/registries.yaml.j2
+        dest: /etc/rancher/k3s/registries.yaml
+        mode: '0644'
+      when: embedded_registry | default(false)
+    
 
     - name: Install K3s
       ansible.builtin.shell: curl -sfL https://get.k3s.io | sh -
