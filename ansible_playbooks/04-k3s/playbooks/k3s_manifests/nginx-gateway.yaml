@@ -1,18 +1,18 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: nginx-gateway
----
-apiVersion: helm.cattle.io/v1
-kind: HelmChart
-metadata:
-  name: nginx-gateway-fabric
-  namespace: kube-system
-spec:
-  chart: oci://ghcr.io/nginx/charts/nginx-gateway-fabric
-  targetNamespace: nginx-gateway
-  createNamespace: true
-  version: 1.6.2
-  valuesContent: |
-    service:
-      loadBalancerIP: 192.168.2.101
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: nginx-gateway
+# ---
+# apiVersion: helm.cattle.io/v1
+# kind: HelmChart
+# metadata:
+#   name: nginx-gateway-fabric
+#   namespace: kube-system
+# spec:
+#   chart: oci://ghcr.io/nginx/charts/nginx-gateway-fabric
+#   targetNamespace: nginx-gateway
+#   createNamespace: true
+#   version: 1.6.2
+#   valuesContent: |
+#     service:
+#       loadBalancerIP: 192.168.2.101
