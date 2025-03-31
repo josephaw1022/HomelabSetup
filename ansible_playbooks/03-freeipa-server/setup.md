@@ -35,3 +35,28 @@ sudo podman run -d \
   --unattended
 
 ```
+
+
+
+## also got this working too 
+
+```
+sudo podman run -d \
+  --replace \
+  --name idm-server \
+  --restart=always \
+  --network homelabnetwork \
+  --ip 192.168.2.51 \
+  -v idm-data:/data \
+  -v idm-config:/config \
+  -v ./logs:/var/log:Z \
+  -e IPA_SERVER_HOSTNAME=idm.kubesoar.com \
+  docker.io/freeipa/freeipa-server:fedora-41 \
+  ipa-server-install \
+  --realm IDM.KUBESOAR.COM \
+  --domain kubesoar.com \
+  --ds-password "FreeIPApass123!" \
+  --admin-password "FreeIPApass123!" \
+  --unattended
+
+```
