@@ -370,6 +370,7 @@ tasks:
     cmds:
       - |
          helm upgrade --install cert-manager jetstack/cert-manager \
+          --version v1.17.0 \
           --create-namespace -n cert-manager \
           --values - <<EOF
           crds:
@@ -475,3 +476,39 @@ tasks:
     cmds:
       - helm uninstall ingress-nginx -n ingress-nginx
       - kubectl delete ns ingress-nginx
+  
+  localstack-helm-repo:
+    desc: Add LocalStack Helm repo
+    cmds:
+      - helm repo add localstack https://localstack.github.io/helm-charts || true
+      - helm repo update
+
+  localstack-install:
+    desc: Install LocalStack via Helm
+    cmds:
+      - |
+          helm upgrade --install localstack localstack/localstack \
+            --create-namespace -n localstack \
+            --version 2.0.0 \
+            --values - <<EOF
+            persistence:
+              enabled: true
+              size: 10Gi
+            ingress:
+              enabled: true
+              className: nginx
+              hostname: localstack.kubesoar.test
+              annotations:
+                nginx.ingress.kubernetes.io/rewrite-target: /
+                cert-manager.io/cluster-issuer: self-signed-issuer
+              tls:
+                - secretName: localstack-tls
+                  hosts:
+                    - localstack.kubesoar.test
+          EOF
+  
+  localstack-uninstall:
+    desc: Uninstall LocalStack and remove namespace
+    cmds:
+      - helm uninstall localstack -n localstack
+      - kubectl delete ns localstack
