@@ -86,3 +86,44 @@ sudo podman run -d \
 
 
 ```
+
+
+you then need to run 
+
+```
+#!/bin/bash
+
+# Configuration
+NETWORK_NAME="homelabnetwork"
+PARENT_INTERFACE="enp0s25"
+SUBNET="192.168.2.0/24"
+GATEWAY="192.168.2.1"
+HOST_INTERFACE="macvlan0"
+HOST_IP="192.168.2.10"
+
+# Ensure netavark DHCP proxy is active (Podman uses this with macvlan)
+sudo systemctl enable --now netavark-dhcp-proxy.socket
+
+# Delete existing macvlan interface if it exists
+if ip link show "$HOST_INTERFACE" &>/dev/null; then
+  echo "[+] Removing old macvlan interface..."
+  sudo ip link delete "$HOST_INTERFACE"
+fi
+
+# Create macvlan interface
+echo "[+] Creating macvlan interface on host..."
+sudo ip link add "$HOST_INTERFACE" link "$PARENT_INTERFACE" type macvlan mode bridge
+sudo ip addr add "$HOST_IP/24" dev "$HOST_INTERFACE"
+sudo ip link set "$HOST_INTERFACE" up
+
+# Enable routing to allow communication between host and macvlan containers
+echo "[+] Enabling IP forwarding..."
+sudo sysctl -w net.ipv4.ip_forward=1
+
+# Add static route if needed (optional, depending on network stack)
+# sudo ip route add "$SUBNET" dev "$HOST_INTERFACE"
+
+echo "[+] Macvlan interface '$HOST_INTERFACE' is ready. You should now be able to ping containers on $SUBNET from the host."
+```
+
+so that you can connect your host machine to that freeipa server. host machines do not have access to macvlan networks by default.
