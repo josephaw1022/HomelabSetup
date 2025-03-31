@@ -41,22 +41,48 @@ sudo podman run -d \
 ## also got this working too 
 
 ```
+#!/bin/bash
+
+# Configuration
+CONTAINER_NAME="idm-server"
+IMAGE="docker.io/freeipa/freeipa-server:fedora-41"
+IP="192.168.2.51"
+NETWORK_NAME="homelabnetwork"
+REALM="KUBESOAR.COM"
+DOMAIN="kubesoar.com"
+DATA_VOL="idm-data"
+CONFIG_VOL="idm-config"
+LOGS_VOL="idm-logs"
+
+# Cleanup
+podman rm -f "$CONTAINER_NAME"
+podman volume rm -f "$DATA_VOL" "$CONFIG_VOL" "$LOGS_VOL"
+
+# Create volumes
+podman volume create "$DATA_VOL"
+podman volume create "$CONFIG_VOL"
+podman volume create "$LOGS_VOL"
+
+# Run container
 sudo podman run -d \
   --replace \
-  --name idm-server \
+  --name "$CONTAINER_NAME" \
   --restart=always \
-  --network homelabnetwork \
-  --ip 192.168.2.51 \
-  -v idm-data:/data \
-  -v idm-config:/config \
-  -v ./logs:/var/log:Z \
-  -e IPA_SERVER_HOSTNAME=idm.kubesoar.com \
-  docker.io/freeipa/freeipa-server:fedora-41 \
+  --network "$NETWORK_NAME" \
+  --ip "$IP" \
+  -v "$DATA_VOL":/data:Z \
+  -v "$CONFIG_VOL":/config:Z \
+  -v "$LOGS_VOL":/var/log:Z \
+  -e IPA_SERVER_HOSTNAME="idm.kubesoar.com" \
+  "$IMAGE" \
   ipa-server-install \
-  --realm IDM.KUBESOAR.COM \
-  --domain kubesoar.com \
-  --ds-password "FreeIPApass123!" \
-  --admin-password "FreeIPApass123!" \
-  --unattended
+    --realm "$REALM" \
+    --domain "$DOMAIN" \
+    --ds-password "FreeIPApass123!" \
+    --admin-password "FreeIPApass123!" \
+    --unattended \
+    --no-ntp
+
+
 
 ```
