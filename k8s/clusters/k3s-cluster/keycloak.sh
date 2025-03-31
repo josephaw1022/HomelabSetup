@@ -41,11 +41,15 @@ httpRelativePath: "/"
 replicaCount: 1
 
 postgresql:
-  enabled: true
-  auth:
-    postgresPassword: "JoeMontana11#"
-    username: keycloak
-    password: "JoeMontana11#"
-    database: keycloak
-  architecture: standalone
+  enabled: false
+
+
+externalDatabase:
+  host: laptop-server.kubesoar.com
+  port: 5432
+  user: k3s
+  password: k3s
+  database: keycloak
+
+
 EOF
