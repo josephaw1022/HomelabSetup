@@ -3,5 +3,5 @@
 resources:
   - metallb
   - cert-manager
-  - tekton-operator
-  - shipwright
+  # - tekton-operator
+  # - shipwright
