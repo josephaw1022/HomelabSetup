@@ -1,0 +1,25 @@
+# Local .terraform directories
+**/.terraform/*
+
+# Terraform state
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Ignore override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform variable files (real secrets)
+*.tfvars
+!*.tfvars.example   # keep example files tracked
+
+# Ignore CLI config
+.terraformrc
+terraform.rc
+
+# Local environment overrides
+.terraform.lock.hcl
