@@ -1,0 +1,126 @@
+---
+- name: Install / configure cert-manager and ClusterIssuers
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    kubeconfig_path: "~/.kube/config"
+    acme_email: "josephsims1@gmail.com"
+    cert_manager_namespace: "cert-manager"
+    cert_manager_chart: "oci://quay.io/jetstack/charts/cert-manager"
+    cert_manager_version: "v1.18.2"
+    http01_ingress_class: "cilium"
+
+  tasks:
+    - name: Ensure cert-manager namespace exists with privileged label
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ cert_manager_namespace }}"
+            labels:
+              pod-security.kubernetes.io/enforce: privileged
+              pod-security.kubernetes.io/audit: privileged
+              pod-security.kubernetes.io/warn: privileged
+
+    - name: Apply permissive NetworkPolicy for cert-manager
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
+            name: cert-manager-allow-all
+            namespace: "{{ cert_manager_namespace }}"
+          spec:
+            podSelector:
+              matchLabels:
+                app.kubernetes.io/instance: cert-manager
+            policyTypes:
+              - Ingress
+              - Egress
+            ingress:
+              - {}
+            egress:
+              - {}
+
+    - name: Install/upgrade cert-manager
+      kubernetes.core.helm:
+        name: cert-manager
+        chart_ref: "{{ cert_manager_chart }}"
+        chart_version: "{{ cert_manager_version }}"
+        release_namespace: "{{ cert_manager_namespace }}"
+        create_namespace: false
+        kubeconfig: "{{ kubeconfig_path }}"
+        wait: true
+        values:
+          crds:
+            enabled: true
+
+    - name: Wait for cert-manager CRDs
+      kubernetes.core.k8s_info:
+        api_version: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        kubeconfig: "{{ kubeconfig_path }}"
+      register: cm_crds
+      until: "'clusterissuers.cert-manager.io' in (cm_crds.resources | map(attribute='metadata.name') | list)"
+      retries: 30
+      delay: 6
+
+
+
+    - name: Create ClusterIssuer selfsigned
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: selfsigned
+          spec:
+            selfSigned: {}
+
+    - name: Create ClusterIssuer letsencrypt-staging
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: letsencrypt-staging
+          spec:
+            acme:
+              email: "{{ acme_email }}"
+              server: https://acme-staging-v02.api.letsencrypt.org/directory
+              privateKeySecretRef:
+                name: letsencrypt-staging-account-key
+              solvers:
+                - http01:
+                    ingress:
+                      class: "{{ http01_ingress_class }}"
+
+    - name: Create ClusterIssuer letsencrypt-prod
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: letsencrypt-prod
+          spec:
+            acme:
+              email: "{{ acme_email }}"
+              server: https://acme-v02.api.letsencrypt.org/directory
+              privateKeySecretRef:
+                name: letsencrypt-prod-account-key
+              solvers:
+                - http01:
+                    ingress:
+                      class: "{{ http01_ingress_class }}"

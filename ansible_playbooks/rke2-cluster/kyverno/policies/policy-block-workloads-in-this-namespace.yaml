@@ -1,0 +1,34 @@
+---
+apiVersion: kyverno.io/v1
+kind: Policy
+metadata:
+  name: block-workloads-in-this-namespace
+  namespace: default
+  annotations:
+    policies.kyverno.io/title: Block Deployments in This Namespace
+    policies.kyverno.io/category: Namespace Governance
+    kyverno.io/kyverno-version: 1.6.2
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/subject: Workloads
+    policies.kyverno.io/description: >-
+      Prevents creation or updates of workloads in this namespace.
+      Intended for restricting application deployments in the default namespace.
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: deny-workloads
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+                - DaemonSet
+                - Job
+                - CronJob
+                - ReplicaSet
+                - Pod
+      validate:
+        message: "Creating workloads in this namespace is not allowed."
+        deny: {}

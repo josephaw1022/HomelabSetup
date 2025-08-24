@@ -1,0 +1,86 @@
+---
+- name: Install / upgrade Kyverno and apply policies
+  hosts: localhost
+  gather_facts: false
+  vars:
+    kubeconfig_path: "~/.kube/config"
+    kyverno_namespace: kyverno
+    kyverno_chart_version: "3.5.1"
+    kyverno_chart_repo: "https://kyverno.github.io/kyverno/"
+
+  tasks:
+    - name: Add Kyverno Helm repo
+      kubernetes.core.helm_repository:
+        name: kyverno
+        repo_url: "{{ kyverno_chart_repo }}"
+
+    - name: Install/upgrade Kyverno
+      kubernetes.core.helm:
+        name: kyverno
+        chart_ref: kyverno/kyverno
+        chart_version: "{{ kyverno_chart_version }}"
+        release_namespace: "{{ kyverno_namespace }}"
+        create_namespace: true
+        kubeconfig: "{{ kubeconfig_path }}"
+        wait: true
+        update_repo_cache: true
+        values:
+          admissionController:
+            replicas: 3
+            rbac:
+              clusterRole:
+                extraResources:
+                  - apiGroups: ["*"]
+                    resources: ["*"]
+                    verbs: ["get", "list", "watch"]
+
+          backgroundController:
+            replicas: 3
+            rbac:
+              clusterRole:
+                extraResources:
+                  - apiGroups: ["*"]
+                    resources: ["*"]
+                    verbs: ["get", "list", "watch"]
+                  - apiGroups: ["policy"]
+                    resources: ["poddisruptionbudgets"]
+                    verbs: ["create", "get", "list", "watch", "update", "patch"]
+
+          cleanupController:
+            replicas: 3
+
+          reportsController:
+            replicas: 3
+            rbac:
+              clusterRole:
+                extraResources:
+                  - apiGroups: ["*"]
+                    resources: ["*"]
+                    verbs: ["get", "list", "watch"]
+
+    - name: Wait for Kyverno CRDs to be established
+      kubernetes.core.k8s_info:
+        api_version: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        kubeconfig: "{{ kubeconfig_path }}"
+      register: kyverno_crds
+      until: "'clusterpolicies.kyverno.io' in (kyverno_crds.resources | map(attribute='metadata.name') | list)"
+      retries: 20
+      delay: 15
+
+    - name: Install/upgrade Kyverno Pod Security Standards policies
+      kubernetes.core.helm:
+        name: kyverno-policies
+        chart_ref: kyverno/kyverno-policies
+        release_namespace: "{{ kyverno_namespace }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+        wait: true
+        update_repo_cache: true
+
+    - name: Apply your custom Kyverno policies
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        src: "{{ item }}"
+      with_fileglob:
+        - "kyverno/policies/*.yaml"

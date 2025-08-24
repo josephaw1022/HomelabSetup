@@ -1,0 +1,140 @@
+---
+- name: RKE2 cluster health check
+  hosts: rke2_server
+  become: true
+  gather_facts: false
+  vars:
+    kubeconfig: /etc/rancher/rke2/rke2.yaml
+
+  tasks:
+    - name: API livez
+      ansible.builtin.command: kubectl --kubeconfig {{ kubeconfig }} get --raw=/livez
+      register: livez
+      changed_when: false
+      retries: 5
+      delay: 3
+      until: livez.rc == 0 and ('ok' in livez.stdout | lower)
+
+    - name: API readyz
+      ansible.builtin.command: kubectl --kubeconfig {{ kubeconfig }} get --raw=/readyz
+      register: readyz
+      changed_when: false
+      retries: 5
+      delay: 3
+      until: readyz.rc == 0 and ('ok' in readyz.stdout | lower)
+
+    - name: Get nodes (json)
+      ansible.builtin.command: kubectl --kubeconfig {{ kubeconfig }} get nodes -o json
+      register: nodes_json
+      changed_when: false
+
+    - name: Parse nodes
+      ansible.builtin.set_fact:
+        nodes_parsed: "{{ nodes_json.stdout | from_json }}"
+
+    - name: Compute non-ready nodes
+      ansible.builtin.set_fact:
+        nonready_nodes: >-
+          {{
+            nodes_parsed.items
+            | map(attribute='metadata.name')
+            | zip(
+                nodes_parsed.items
+                | map(attribute='status.conditions')
+                | map('selectattr','type','equalto','Ready')
+                | map('first')
+                | map(attribute='status')
+              )
+            | map('list')
+            | selectattr('1','ne','True')
+            | map('first')
+            | list
+          }}
+
+    - name: Fail if any node is not Ready
+      ansible.builtin.fail:
+        msg: "Non-Ready nodes: {{ nonready_nodes | join(', ') }}"
+      when: nonready_nodes | length > 0
+
+    - name: kube-system pods (json)
+      ansible.builtin.command: kubectl --kubeconfig {{ kubeconfig }} -n kube-system get pods -o json
+      register: ks_pods_json
+      changed_when: false
+
+    - name: Find not fully ready pods in kube-system
+      ansible.builtin.set_fact:
+        ks_not_ready: >-
+          {{
+            ks_pods_json.stdout | from_json | json_query(
+              "items[?!(status.containerStatuses && "
+              "status.containerStatuses[].ready && "
+              "to_number(status.containerStatuses[].ready) == `1` && "
+              "length(status.containerStatuses)==length(status.containerStatuses[?ready==`true`]))].metadata.name"
+            )
+          }}
+
+    - name: Report kube-system pod issues (soft warning)
+      ansible.builtin.debug:
+        msg: "kube-system pods not fully ready: {{ ks_not_ready | default([]) | join(', ') | default('none') }}"
+      when: ks_not_ready | length > 0
+
+    - name: Check Cilium DaemonSet health
+      ansible.builtin.command: kubectl --kubeconfig {{ kubeconfig }} -n kube-system get ds cilium -o json
+      register: cilium_ds
+      changed_when: false
+      failed_when: false
+
+    - name: Evaluate Cilium DS
+      ansible.builtin.set_fact:
+        cilium_ds_ok: >-
+          {{
+            (cilium_ds.rc == 0) and
+            ((cilium_ds.stdout | from_json).status.desiredNumberScheduled |
+              default(0)) ==
+            ((cilium_ds.stdout | from_json).status.numberReady | default(-1))
+          }}
+        cilium_ds_status: "{{ (cilium_ds.stdout | default('{}')) | from_json | default({}) }}"
+
+    - name: Fail if Cilium DS not healthy
+      ansible.builtin.fail:
+        msg: "Cilium DS not healthy. Status: {{ cilium_ds_status.status | default({}) }}"
+      when: cilium_ds.rc == 0 and not cilium_ds_ok
+
+    - name: Check cilium-operator deployment
+      ansible.builtin.command: kubectl --kubeconfig {{ kubeconfig }} -n kube-system get deploy cilium-operator -o json
+      register: cilium_op
+      changed_when: false
+      failed_when: false
+
+    - name: Evaluate cilium-operator deployment
+      ansible.builtin.set_fact:
+        cilium_op_ok: >-
+          {{
+            (cilium_op.rc == 0) and
+            ((cilium_op.stdout | from_json).status.readyReplicas | default(0)) ==
+            ((cilium_op.stdout | from_json).status.replicas | default(0)) and
+            ((cilium_op.stdout | from_json).status.replicas | default(0)) > 0
+          }}
+        cilium_op_status: "{{ (cilium_op.stdout | default('{}')) | from_json | default({}) }}"
+
+    - name: Fail if cilium-operator not healthy
+      ansible.builtin.fail:
+        msg: "cilium-operator not healthy. Status: {{ cilium_op_status.status | default({}) }}"
+      when: cilium_op.rc == 0 and not cilium_op_ok
+
+    - name: Check Hubble UI service exists (info)
+      ansible.builtin.command: kubectl --kubeconfig {{ kubeconfig }} -n kube-system get svc hubble-ui -o name
+      register: hubble_svc
+      changed_when: false
+      failed_when: false
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg:
+          - "API livez: {{ 'ok' if ('ok' in livez.stdout | lower) else livez.stdout }}"
+          - "API readyz: {{ 'ok' if ('ok' in readyz.stdout | lower) else readyz.stdout }}"
+          - "Nodes Ready: OK ({{ nodes_parsed.items | length }})"
+          - "kube-system pods not fully ready: {{ ks_not_ready | default([]) | length }}"
+          - "Cilium DS healthy: {{ cilium_ds_ok if cilium_ds.rc == 0 else 'DS not found' }}"
+          - "cilium-operator healthy: {{ cilium_op_ok if cilium_op.rc == 0 else 'deployment not found' }}"
+          - "Hubble UI service: {{ (hubble_svc.stdout | trim) if hubble_svc.rc == 0 else 'absent' }}"

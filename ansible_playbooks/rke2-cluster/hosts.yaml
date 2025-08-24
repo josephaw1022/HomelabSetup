@@ -1,0 +1,8 @@
+all:
+  children:
+    rke2_server:
+      hosts:
+        desktop-server.kubesoar.com:
+          ansible_user: jwhiteaker
+          ansible_become: true
+          ansible_ssh_private_key_file: ~/.ssh/id_ed25519

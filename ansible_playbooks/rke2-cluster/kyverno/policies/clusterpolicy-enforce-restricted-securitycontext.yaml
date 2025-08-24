@@ -1,0 +1,55 @@
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: enforce-restricted-securitycontext
+  annotations:
+    policies.kyverno.io/title: Add Pod Disruption Budget
+    policies.kyverno.io/category: Sample
+    kyverno.io/kyverno-version: 1.6.2
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/subject: Deployment
+    policies.kyverno.io/description: >-
+      A PodDisruptionBudget limits the number of Pods of a replicated application that
+      are down simultaneously from voluntary disruptions. For example, a quorum-based
+      application would like to ensure that the number of replicas running is never brought
+      below the number needed for a quorum. As an application owner, you can create a PodDisruptionBudget (PDB)
+      for each application. This policy will create a PDB resource whenever a new Deployment is created.
+spec:
+  validationFailureAction: Audit # use Enforce to block instead of warn
+  background: true
+  rules:
+    - name: add-restricted-securitycontext
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                [
+                  "kube-system",
+                  "kube-public",
+                  "kube-node-lease",
+                  "kyverno",
+                ]
+      mutate:
+        patchStrategicMerge:
+          spec:
+            template:
+              spec:
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 101
+                  seccompProfile:
+                    type: RuntimeDefault
+                containers:
+                  - (name): "*"
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - "ALL"
+

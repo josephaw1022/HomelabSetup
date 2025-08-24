@@ -1,0 +1,48 @@
+---
+- name: Install & configure RKE2 + Cilium (L2 + Hubble), then start services
+  hosts: rke2_server
+  become: true
+  vars:
+    rke2_tls_san: "desktop-server.kubesoar.com"
+    cilium_version: "1.18.1"
+
+  tasks:
+    - name: Install RKE2 (one-time)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        curl -sfL https://get.rke2.io | sh -
+      args:
+        creates: /usr/local/bin/rke2
+
+    - name: Ensure config/manifests directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - /etc/rancher/rke2
+        - /etc/rancher/rke2/config.yaml.d
+        - /var/lib/rancher/rke2/server/manifests
+
+    - name: Combined RKE2 config
+      ansible.builtin.copy:
+        dest: /etc/rancher/rke2/config.yaml
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          write-kubeconfig-mode: "0644"
+          cni: none
+          disable-kube-proxy: true
+          tls-san:
+            - {{ rke2_tls_san }}
+          disable:
+            - rke2-ingress-nginx
+
+    - name: Enable & restart rke2-server (apply all changes)
+      ansible.builtin.service:
+        name: rke2-server
+        enabled: true
+        state: restarted

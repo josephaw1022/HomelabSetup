@@ -1,0 +1,62 @@
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: generate-limitrange-per-namespace
+  annotations:
+    policies.kyverno.io/title: Add Pod Disruption Budget
+    policies.kyverno.io/category: Sample
+    kyverno.io/kyverno-version: 1.6.2
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/subject: Deployment
+    policies.kyverno.io/description: >-
+      A PodDisruptionBudget limits the number of Pods of a replicated application that
+      are down simultaneously from voluntary disruptions. For example, a quorum-based
+      application would like to ensure that the number of replicas running is never brought
+      below the number needed for a quorum. As an application owner, you can create a PodDisruptionBudget (PDB)
+      for each application. This policy will create a PDB resource whenever a new Deployment is created.
+spec:
+  validationFailureAction: Audit
+  background: false
+  rules:
+    - name: generate-limitrange
+      match:
+        any:
+          - resources:
+              kinds: ["Namespace"]
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                [
+                  "kube-system",
+                  "kube-public",
+                  "kube-node-lease",
+                ]
+      preconditions:
+        all:
+          - key: "{{ request.operation }}"
+            operator: Equals
+            value: CREATE
+      generate:
+        apiVersion: v1
+        kind: LimitRange
+        name: default-limits
+        namespace: "{{ request.object.metadata.name }}"
+        synchronize: false
+        data:
+          spec:
+            limits:
+              - type: "Container"
+                default:
+                  cpu: "500m"
+                  memory: "512Mi"
+                defaultRequest:
+                  cpu: "250m"
+                  memory: "256Mi"
+                max:
+                  cpu: "3"
+                  memory: "3Gi"
+                min:
+                  cpu: "100m"
+                  memory: "128Mi"

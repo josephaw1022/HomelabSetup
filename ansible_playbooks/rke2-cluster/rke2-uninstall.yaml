@@ -1,0 +1,65 @@
+---
+- name: Uninstall RKE2 cleanly
+  hosts: rke2_server
+  become: true
+  gather_facts: false
+
+  vars:
+    # Residual paths RKE2 may leave behind (safe to remove if present)
+    residual_paths:
+      - /etc/rancher/rke2
+      - /var/lib/rancher
+      - /var/lib/rke2
+      - /var/lib/kubelet
+      - /var/lib/cni
+      - /etc/cni/net.d
+
+  tasks:
+    - name: Check for RPM uninstall script
+      ansible.builtin.stat:
+        path: /usr/bin/rke2-uninstall.sh
+      register: rpm_uninstall
+
+    - name: Check for tarball uninstall script
+      ansible.builtin.stat:
+        path: /usr/local/bin/rke2-uninstall.sh
+      register: tar_uninstall
+
+    - name: Check for agent uninstall scripts (in case this node is an agent)
+      block:
+        - name: RKE2 Agent RPM Uninstall Script
+          ansible.builtin.stat:
+            path: /usr/bin/rke2-agent-uninstall.sh
+          register: rpm_agent_uninstall
+        - name: RKE2 Agent Tarball Uninstall Script
+          ansible.builtin.stat:
+            path: /usr/local/bin/rke2-agent-uninstall.sh
+          register: tar_agent_uninstall
+
+    - name: Decide uninstall script path
+      ansible.builtin.set_fact:
+        rke2_uninstall_script: >-
+          {{ '/usr/bin/rke2-uninstall.sh' if rpm_uninstall.stat.exists else
+             '/usr/local/bin/rke2-uninstall.sh' if tar_uninstall.stat.exists else
+             ( '/usr/bin/rke2-agent-uninstall.sh' if rpm_agent_uninstall.stat.exists else
+               '/usr/local/bin/rke2-agent-uninstall.sh' if tar_agent_uninstall.stat.exists else '' ) }}
+
+    - name: Fail if no uninstall script found
+      ansible.builtin.fail:
+        msg: "No RKE2 uninstall script found (checked server and agent locations)."
+      when: rke2_uninstall_script | length == 0
+
+    - name: Run RKE2 uninstall script (stops services, removes packages & data)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        "{{ rke2_uninstall_script }}"
+      args:
+        executable: /bin/bash
+      when: rke2_uninstall_script | length > 0
+
+    # Optional: clean up residual directories if any remain after uninstall
+    - name: Remove residual RKE2/K8s directories if present
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ residual_paths }}"
