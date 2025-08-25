@@ -5,14 +5,14 @@
     state: absent
     api_version: datadoghq.com/v2alpha1
     kind: DatadogAgent
-    namespace: "{{ datadog_namespace }}"
+    namespace: "{{ datadog_operator_namespace }}"
     name: datadog
   ignore_errors: true
 
 - name: uninstall datadog operator helm release
   kubernetes.core.helm:
     name: datadog-operator
-    release_namespace: "{{ datadog_namespace }}"
+    release_namespace: "{{ datadog_operator_namespace }}"
     state: absent
     kubeconfig: "{{ kubeconfig_path }}"
     wait: true
@@ -23,5 +23,5 @@
     kubeconfig: "{{ kubeconfig_path }}"
     state: absent
     kind: Namespace
-    name: "{{ datadog_namespace }}"
+    name: "{{ datadog_operator_namespace }}"
   ignore_errors: true
