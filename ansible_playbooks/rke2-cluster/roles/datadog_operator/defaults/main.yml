@@ -26,7 +26,7 @@ datadog_operator_agent_spec:
   features:
     apm:
       instrumentation:
-        enabled: true
+        enabled: false
         targets:
           - name: "default-target"
             ddTraceVersions:
@@ -80,21 +80,13 @@ datadog_operator_agent_spec:
             path: /var/lib/kubelet/seccomp
             type: DirectoryOrCreate
 
-      volumeMounts:
-        - name: kubelet-seccomp
-          mountPath: /host/var/lib/kubelet/seccomp
+  clusterRole:
+    allowReadAllResources: true
+    allowCreatePodsExec: true
 
-      initContainers:
-        init-seccomp:
-          securityContext:
-            privileged: true
-          volumeMounts:
-            - name: kubelet-seccomp
-              mountPath: /host/var/lib/kubelet/seccomp
-
-      containers:
-        system-probe:
-          securityContext:
-            seccompProfile:
-              type: RuntimeDefault
-
+  datadogCRDs:
+    crds:
+      datadogSLOs: true
+      datadogDashboards: true
+      datadogGenericResources: true
+      datadogAgentProfiles: true
