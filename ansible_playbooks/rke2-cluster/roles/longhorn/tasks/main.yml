@@ -1,0 +1,16 @@
+---
+- name: normalize action
+  ansible.builtin.set_fact:
+    longhorn_action_norm: "{{ longhorn_action | lower }}"
+
+- name: assert action valid
+  ansible.builtin.assert:
+    that: longhorn_action_norm in ['install', 'uninstall']
+
+- name: run uninstall
+  ansible.builtin.include_tasks: uninstall.yml
+  when: longhorn_action_norm == 'uninstall'
+
+- name: run install
+  ansible.builtin.include_tasks: install.yml
+  when: longhorn_action_norm == 'install'

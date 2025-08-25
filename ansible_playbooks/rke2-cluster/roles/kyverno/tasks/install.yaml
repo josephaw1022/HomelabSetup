@@ -1,11 +1,28 @@
 ---
+- name: Check if Kyverno admission controller exists
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    kind: Deployment
+    namespace: "{{ kyverno_namespace }}"
+    name: kyverno-admission-controller
+  register: kyverno_admission
+
+- name: Check if kyverno-policies are present
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: kyverno.io/v1
+    kind: ClusterPolicy
+    label_selectors:
+      - "app.kubernetes.io/instance=kyverno-policies"
+  register: kyverno_policies_present
 
 - name: Add Kyverno Helm repo
   kubernetes.core.helm_repository:
     name: kyverno
     repo_url: "{{ kyverno_chart_repo }}"
+  # when: kyverno_admission.resources | length == 0
 
-- name: Install/upgrade Kyverno
+- name: Install/upgrade Kyverno (core)
   kubernetes.core.helm:
     name: kyverno
     chart_ref: kyverno/kyverno
@@ -17,6 +34,7 @@
     update_repo_cache: true
     values: "{{ kyverno_values }}"
   register: kyverno_core_helm
+  # when: kyverno_admission.resources | length == 0
 
 - name: Wait for Kyverno CRDs to be established
   kubernetes.core.k8s_info:
@@ -27,6 +45,7 @@
   until: "'clusterpolicies.kyverno.io' in (kyverno_crds.resources | map(attribute='metadata.name') | list)"
   retries: 20
   delay: 15
+  # when: kyverno_admission.resources | length == 0
 
 - name: Install/upgrade Kyverno Pod Security Standards policies chart
   kubernetes.core.helm:
@@ -38,12 +57,12 @@
     wait: true
     update_repo_cache: true
   register: kyverno_policies_helm
-
+  # when: kyverno_policies_present.resources | length == 0
 
 - name: Apply custom policies
   vars:
     policy_files: "{{ lookup('fileglob', kyverno_role_policies_glob, wantlist=True, errors='ignore') }}"
-  when: policy_files | length > 0
+  # when: policy_files | length > 0
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_path }}"
     state: present

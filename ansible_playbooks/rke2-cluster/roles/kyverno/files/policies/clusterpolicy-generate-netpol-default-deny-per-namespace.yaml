@@ -30,6 +30,7 @@ spec:
                 - kube-node-lease
                 - kyverno
                 - cert-manager
+                - longhorn-system
       preconditions:
         all:
           - key: "{{ request.operation }}"

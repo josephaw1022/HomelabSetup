@@ -1,42 +1,54 @@
 ---
-# - name: Install RKE2 on servers
-#   hosts: rke2_server
-#   become: true
-#   roles:
-#     - rke2_cluster
+- name: Install RKE2 on servers
+  hosts: rke2_server
+  become: true
+  roles:
+    - rke2_cluster
 
-# - name: Fetch kubeconfig locally
-#   hosts: localhost
-#   gather_facts: false
-#   roles:
-#     - role: kubeconfig
-#       vars:
-#         kubeconfig_action: fetch
-
-# - name: Install Cilium
-#   hosts: localhost
-#   gather_facts: false
-#   roles:
-#     - cilium
-
-# - name: Install Kyverno
-#   hosts: localhost
-#   gather_facts: false
-#   roles:
-#     - kyverno
-
-
-# - name: Install cert-manager
-#   hosts: localhost
-#   gather_facts: false
-#   roles:
-#     - cert_manager
-
-
-- name: Install ExternalDNS
+- name: Fetch kubeconfig locally
   hosts: localhost
   gather_facts: false
   roles:
-    - role: external_dns
+    - role: kubeconfig
       vars:
-        external_dns_create_cnp: false
+        kubeconfig_action: fetch
+
+- name: Install Cilium
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - cilium
+
+- name: Install Kyverno
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: kyverno
+      vars:
+        kyverno_action: install
+        kyverno_delete_namespace: true
+
+
+- name: Install cert-manager
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - cert_manager
+
+- name: Install Longhorn
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: longhorn
+      vars:
+        longhorn_action: install
+        longhorn_delete_namespace: true
+
+- name: Install Datadog Operator
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: datadog_operator
+      vars:
+        datadog_operator_action: install
+        datadog_operator_delete_namespace: true

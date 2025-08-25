@@ -11,16 +11,7 @@
     src: "{{ item }}"
   loop: "{{ policy_files }}"
 
-# Remove RBAC defined in this role
-- name: Remove RBAC from role (if any)
-  vars:
-    rbac_files: "{{ lookup('fileglob', kyverno_role_rbac_glob, wantlist=True, errors='ignore') }}"
-  when: rbac_files | length > 0
-  kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig_path }}"
-    state: absent
-    src: "{{ item }}"
-  loop: "{{ rbac_files }}"
+
 
 # Remove Helm releases
 - name: Remove kyverno-policies Helm release (if present)

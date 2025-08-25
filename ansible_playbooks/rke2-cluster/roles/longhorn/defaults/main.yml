@@ -1,0 +1,14 @@
+# action: install | uninstall
+longhorn_action: install
+
+# Helm bits
+longhorn_namespace: longhorn-system
+longhorn_chart_repo: "https://charts.longhorn.io"
+longhorn_chart_name: "longhorn/longhorn"
+longhorn_chart_version: "1.9.1"
+
+# Set Longhorn as the default StorageClass after install
+longhorn_set_default_storageclass: true
+
+# Pass-through Helm values (override in group_vars if desired)
+longhorn_values: {}

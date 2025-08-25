@@ -1,0 +1,57 @@
+---
+- name: remove longhorn helm release
+  kubernetes.core.helm:
+    name: longhorn
+    release_namespace: "{{ longhorn_namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+  failed_when: false
+
+- name: delete longhorn system namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    kind: Namespace
+    name: "{{ longhorn_namespace }}"
+  failed_when: false
+
+- name: delete longhorn CRDs
+  vars:
+    longhorn_crds:
+      - engines.longhorn.io
+      - replicas.longhorn.io
+      - volumes.longhorn.io
+      - settings.longhorn.io
+      - engineimages.longhorn.io
+      - nodes.longhorn.io
+      - instancemanagers.longhorn.io
+      - sharemanagers.longhorn.io
+      - backups.longhorn.io
+      - backupvolumes.longhorn.io
+      - backuptargets.longhorn.io
+      - recurrentjobs.longhorn.io
+      - orphans.longhorn.io
+      - backingimages.longhorn.io
+      - backingimagemanagers.longhorn.io
+      - backingimagedatasources.longhorn.io
+      - snapshots.longhorn.io
+      - supportbundles.longhorn.io
+  loop: "{{ longhorn_crds }}"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    definition:
+      apiVersion: apiextensions.k8s.io/v1
+      kind: CustomResourceDefinition
+      metadata:
+        name: "{{ item }}"
+  failed_when: false
+
+- name: delete longhorn StorageClass if present
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    api_version: storage.k8s.io/v1
+    kind: StorageClass
+    name: longhorn
+  failed_when: false

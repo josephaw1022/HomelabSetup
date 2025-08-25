@@ -1,0 +1,27 @@
+---
+- name: delete DatadogAgent
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    api_version: datadoghq.com/v2alpha1
+    kind: DatadogAgent
+    namespace: "{{ datadog_namespace }}"
+    name: datadog
+  ignore_errors: true
+
+- name: uninstall datadog operator helm release
+  kubernetes.core.helm:
+    name: datadog-operator
+    release_namespace: "{{ datadog_namespace }}"
+    state: absent
+    kubeconfig: "{{ kubeconfig_path }}"
+    wait: true
+  ignore_errors: true
+
+- name: delete namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    kind: Namespace
+    name: "{{ datadog_namespace }}"
+  ignore_errors: true

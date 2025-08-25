@@ -15,7 +15,7 @@ kyverno_delete_namespace: false
 # Use role_path to resolve correctly regardless of CWD.
 kyverno_role_policies_glob: "{{ role_path }}/files/policies/*.yaml"
 
-# Default Helm values (override in group_vars if needed)
+# Values to pass to the Helm chart
 kyverno_values:
   admissionController:
     replicas: 3
@@ -28,6 +28,16 @@ kyverno_values:
           - apiGroups: ["cilium.io"]
             resources: ["ciliumnetworkpolicies"]
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    podAnnotations:
+      ad.datadoghq.com/kyverno.checks: |
+        {
+          "kyverno": {
+            "init_config": {},
+            "instances": [
+              { "openmetrics_endpoint": "http://%%host%%:8000/metrics" }
+            ]
+          }
+        }
 
   backgroundController:
     replicas: 3
@@ -43,6 +53,16 @@ kyverno_values:
           - apiGroups: ["cilium.io"]
             resources: ["ciliumnetworkpolicies"]
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    podAnnotations:
+      ad.datadoghq.com/background-controller.checks: |
+        {
+          "kyverno": {
+            "init_config": {},
+            "instances": [
+              { "openmetrics_endpoint": "http://%%host%%:8000/metrics" }
+            ]
+          }
+        }
 
   cleanupController:
     replicas: 3
@@ -52,6 +72,16 @@ kyverno_values:
           - apiGroups: ["cilium.io"]
             resources: ["ciliumnetworkpolicies"]
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    podAnnotations:
+      ad.datadoghq.com/cleanup-controller.checks: |
+        {
+          "kyverno": {
+            "init_config": {},
+            "instances": [
+              { "openmetrics_endpoint": "http://%%host%%:8000/metrics" }
+            ]
+          }
+        }
 
   reportsController:
     replicas: 3
@@ -64,3 +94,13 @@ kyverno_values:
           - apiGroups: ["cilium.io"]
             resources: ["ciliumnetworkpolicies"]
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    podAnnotations:
+      ad.datadoghq.com/reports-controller.checks: |
+        {
+          "kyverno": {
+            "init_config": {},
+            "instances": [
+              { "openmetrics_endpoint": "http://%%host%%:8000/metrics" }
+            ]
+          }
+        }

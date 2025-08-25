@@ -1,0 +1,100 @@
+---
+datadog_operator_action: install
+datadog_operator_namespace: datadog
+datadog_operator_chart_repo: "https://helm.datadoghq.com"
+datadog_operator_chart_name: "datadog/datadog-operator"
+datadog_operator_site: "us5.datadoghq.com"
+datadog_operator_cluster_name: "homelab"
+
+
+datadog_operator_agent_spec:
+  global:
+    site: "{{ datadog_operator_site }}"
+    clusterName: "{{ datadog_operator_cluster_name }}"
+    credentials:
+      apiSecret:
+        secretName: datadog-secret
+        keyName: api-key
+      appSecret:
+        secretName: datadog-secret
+        keyName: app-key
+    kubelet:
+      tlsVerify: false
+    tags:
+      - "env:dev"
+
+  features:
+    apm:
+      instrumentation:
+        enabled: true
+        targets:
+          - name: "default-target"
+            ddTraceVersions:
+              java: "1"
+              python: "3"
+              js: "5"
+              php: "1"
+              dotnet: "3"
+              ruby: "2"
+    logCollection:
+      enabled: true
+      containerCollectAll: true
+    otelCollector:
+      enabled: true
+      ports:
+        - containerPort: 4317
+          hostPort: 4317
+          name: "otel-grpc"
+        - containerPort: 4318
+          hostPort: 4318
+          name: "otel-http"
+    asm:
+      sca:
+        enabled: true
+      iast:
+        enabled: true
+    usm:
+      enabled: true
+    liveProcessCollection:
+      enabled: true
+
+  override:
+    clusterAgent:
+      image:
+        name: "gcr.io/datadoghq/cluster-agent:latest"
+
+    nodeAgent:
+      image:
+        name: "gcr.io/datadoghq/agent:latest"
+      tolerations:
+        - key: "node-role.kubernetes.io/controlplane"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/etcd"
+          operator: "Exists"
+          effect: "NoExecute"
+
+      volumes:
+        - name: kubelet-seccomp
+          hostPath:
+            path: /var/lib/kubelet/seccomp
+            type: DirectoryOrCreate
+
+      volumeMounts:
+        - name: kubelet-seccomp
+          mountPath: /host/var/lib/kubelet/seccomp
+
+      initContainers:
+        init-seccomp:
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: kubelet-seccomp
+              mountPath: /host/var/lib/kubelet/seccomp
+
+      containers:
+        system-probe:
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+

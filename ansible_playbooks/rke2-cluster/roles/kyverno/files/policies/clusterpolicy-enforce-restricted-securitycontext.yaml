@@ -34,6 +34,8 @@ spec:
                   "kube-public",
                   "kube-node-lease",
                   "kyverno",
+                  "datadog",
+                  "longhorn-system",
                 ]
       mutate:
         patchStrategicMerge:

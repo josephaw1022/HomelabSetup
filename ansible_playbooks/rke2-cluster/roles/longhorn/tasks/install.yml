@@ -1,0 +1,97 @@
+---
+- name: ensure longhorn namespace with privileged PSA labels
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ longhorn_namespace }}"
+        labels:
+          pod-security.kubernetes.io/enforce: privileged
+          pod-security.kubernetes.io/audit: privileged
+          pod-security.kubernetes.io/warn: privileged
+
+- name: add longhorn helm repo
+  kubernetes.core.helm_repository:
+    name: longhorn
+    repo_url: "{{ longhorn_chart_repo }}"
+
+- name: check longhorn helm release
+  kubernetes.core.helm_info:
+    name: longhorn
+    release_namespace: "{{ longhorn_namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+  register: longhorn_release
+  failed_when: false
+
+- name: install longhorn (first time)
+  when: longhorn_release.status is not defined or longhorn_release.status is none
+  kubernetes.core.helm:
+    name: longhorn
+    chart_ref: "{{ longhorn_chart_name }}"
+    chart_version: "{{ longhorn_chart_version }}"
+    release_namespace: "{{ longhorn_namespace }}"
+    create_namespace: true
+    kubeconfig: "{{ kubeconfig_path }}"
+    wait: true
+    update_repo_cache: true
+    atomic: true
+    values: "{{ longhorn_values }}"
+  register: longhorn_install
+
+- name: upgrade longhorn (if already installed)
+  when: longhorn_release.status is defined and longhorn_release.status is not none
+  kubernetes.core.helm:
+    name: longhorn
+    chart_ref: "{{ longhorn_chart_name }}"
+    chart_version: "{{ longhorn_chart_version }}"
+    release_namespace: "{{ longhorn_namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+    wait: true
+    update_repo_cache: true
+    atomic: true
+    values: "{{ longhorn_values }}"
+  register: longhorn_upgrade
+
+- name: ensure longhorn StorageClass exists
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: storage.k8s.io/v1
+    kind: StorageClass
+    name: longhorn
+  register: longhorn_sc
+  failed_when: false
+
+- name: create StorageClass longhorn if missing
+  when: longhorn_sc.resources | length == 0
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: longhorn
+      provisioner: driver.longhorn.io
+      reclaimPolicy: Delete
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+      parameters: {}
+
+- name: set StorageClass longhorn as default (annotation)
+  when: longhorn_set_default_storageclass
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: storage.k8s.io/v1
+    kind: StorageClass
+    name: longhorn
+    state: present
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: longhorn
+        annotations:
+          storageclass.kubernetes.io/is-default-class: "true"

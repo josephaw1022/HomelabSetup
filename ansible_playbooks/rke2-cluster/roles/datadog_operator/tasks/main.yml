@@ -1,0 +1,21 @@
+---
+- name: Normalize requested action
+  ansible.builtin.set_fact:
+    datadog_operator_action_norm: "{{ datadog_operator_action | lower }}"
+
+- name: Validate requested action
+  ansible.builtin.assert:
+    that:
+      - datadog_operator_action_norm in ['install', 'uninstall']
+    fail_msg: "Invalid datadog_operator_action='{{ datadog_operator_action }}'. Use 'install' or 'uninstall'."
+    success_msg: "Proceeding with '{{ datadog_operator_action_norm }}'."
+
+- name: Run uninstall
+  ansible.builtin.include_tasks: uninstall.yml
+  when: datadog_operator_action_norm == 'uninstall'
+  tags: [uninstall]
+
+- name: Run install
+  ansible.builtin.include_tasks: install.yml
+  when: datadog_operator_action_norm == 'install'
+  tags: [install]

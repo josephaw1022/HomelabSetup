@@ -1,8 +1,26 @@
 ---
+
+- name: Check if Cilium operator exists
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    kind: Deployment
+    namespace: "{{ cilium_namespace }}"
+    name: cilium-operator
+  register: cilium_operator
+
+- name: Check if Cilium Gateway exists
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    kind: Gateway
+    namespace: "{{ cilium_namespace }}"
+    name: cilium-gateway
+  register: cilium_gateway
+
 - name: Add Cilium Helm repo
   kubernetes.core.helm_repository:
     name: cilium
     repo_url: "{{ cilium_chart_repo }}"
+  when: cilium_operator.resources | length == 0
 
 - name: Apply Gateway API CRDs (idempotent)
   kubernetes.core.k8s:
@@ -10,6 +28,7 @@
     state: present
     src: "{{ item }}"
   loop: "{{ cilium_gateway_api_crds }}"
+  when: cilium_operator.resources | length == 0
 
 - name: Install/upgrade Cilium (strict kube-proxy replacement + L2 + Hubble)
   kubernetes.core.helm:
@@ -24,6 +43,7 @@
     atomic: true
     values: "{{ cilium_values }}"
   register: cilium_helm
+  when: cilium_operator.resources | length == 0
 
 - name: Ensure CiliumLoadBalancerIPPool (default-pool) exists with all blocks
   kubernetes.core.k8s:
@@ -37,9 +57,10 @@
       spec:
         blocks: "{{ cilium_load_balancer_ip_pools | map('community.general.dict_kv', 'cidr') | list }}"
   register: cilium_ippool_result
+  when: cilium_operator.resources | length == 0
 
 - name: Restart cilium-operator deployment if Helm or IPPool changed
-  when: (cilium_helm is changed) or (cilium_ippool_result is changed)
+  when: ((cilium_helm is changed) or (cilium_ippool_result is changed) ) and (cilium_operator.resources | length == 0)
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_path }}"
     namespace: "{{ cilium_namespace }}"
@@ -49,7 +70,7 @@
   ignore_errors: true
 
 - name: Restart cilium DaemonSet if Helm or IPPool changed
-  when: (cilium_helm is changed) or (cilium_ippool_result is changed)
+  when: ((cilium_helm is changed) or (cilium_ippool_result is changed) ) and (cilium_operator.resources | length == 0)
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_path }}"
     namespace: "{{ cilium_namespace }}"
@@ -59,6 +80,7 @@
   ignore_errors: true
 
 - name: Create default Gateway (idempotent)
+  when: cilium_gateway.resources | length == 0
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_path }}"
     state: present

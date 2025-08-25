@@ -1,4 +1,11 @@
 ---
+- name: Check if cert-manager deployment exists
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    kind: Deployment
+    namespace: "{{ cert_manager_namespace }}"
+    name: cert-manager
+  register: cert_manager_deploy
 
 - name: Ensure cert-manager namespace exists with privileged labels
   kubernetes.core.k8s:
@@ -32,6 +39,12 @@
         ingress: [ {} ]
         egress: [ {} ]
 
+- name: Add cert-manager Helm repo
+  kubernetes.core.helm_repository:
+    name: jetstack
+    repo_url: "{{ cert_manager_chart_repo }}"
+  when: cert_manager_deploy.resources | length == 0
+
 - name: Install/upgrade cert-manager (CRDs enabled)
   kubernetes.core.helm:
     name: cert-manager
@@ -45,6 +58,8 @@
     values:
       crds:
         enabled: true
+  register: cert_manager_helm
+  when: cert_manager_deploy.resources | length == 0
 
 - name: Wait for cert-manager CRDs to exist
   kubernetes.core.k8s_info:
@@ -55,8 +70,7 @@
   until: "'clusterissuers.cert-manager.io' in (cert_manager_crds.resources | map(attribute='metadata.name') | list)"
   retries: 30
   delay: 6
-
-# ---- ClusterIssuers ----
+  when: cert_manager_deploy.resources | length == 0
 
 - name: Create ClusterIssuer selfsigned
   kubernetes.core.k8s:
