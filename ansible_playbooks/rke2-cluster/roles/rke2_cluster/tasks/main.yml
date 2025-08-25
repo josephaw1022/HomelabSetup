@@ -1,0 +1,21 @@
+---
+- name: Normalize requested action
+  ansible.builtin.set_fact:
+    rke2_action_norm: "{{ rke2_action | lower }}"
+
+- name: Validate requested action
+  ansible.builtin.assert:
+    that:
+      - rke2_action_norm in ['install', 'uninstall']
+    fail_msg: "Invalid rke2_action='{{ rke2_action }}'. Use 'install' or 'uninstall'."
+    success_msg: "Proceeding with '{{ rke2_action_norm }}'."
+
+- name: Run uninstall
+  ansible.builtin.include_tasks: uninstall.yml
+  when: rke2_action_norm == 'uninstall'
+  tags: [uninstall]
+
+- name: Run install
+  ansible.builtin.include_tasks: install.yml
+  when: rke2_action_norm == 'install'
+  tags: [install]

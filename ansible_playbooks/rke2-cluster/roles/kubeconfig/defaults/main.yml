@@ -1,0 +1,6 @@
+---
+# Default action: fetch
+# Options:
+#   fetch  → fetch kubeconfig from RKE2 server and install it locally
+#   delete → remove the managed kubeconfig from the local machine
+kubeconfig_action: fetch

@@ -1,0 +1,32 @@
+---
+- name: Remove default Gateway (if present)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    definition:
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: Gateway
+      metadata:
+        name: cilium-gateway
+        namespace: "{{ cilium_namespace }}"
+  ignore_errors: true
+
+- name: Remove CiliumLoadBalancerIPPool default-pool (if present)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    definition:
+      apiVersion: cilium.io/v2alpha1
+      kind: CiliumLoadBalancerIPPool
+      metadata:
+        name: default-pool
+  ignore_errors: true
+
+- name: Uninstall Cilium Helm release (if present)
+  kubernetes.core.helm:
+    name: cilium
+    release_namespace: "{{ cilium_namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    wait: true
+  ignore_errors: true

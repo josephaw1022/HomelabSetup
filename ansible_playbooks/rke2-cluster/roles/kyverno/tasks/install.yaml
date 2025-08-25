@@ -1,0 +1,51 @@
+---
+
+- name: Add Kyverno Helm repo
+  kubernetes.core.helm_repository:
+    name: kyverno
+    repo_url: "{{ kyverno_chart_repo }}"
+
+- name: Install/upgrade Kyverno
+  kubernetes.core.helm:
+    name: kyverno
+    chart_ref: kyverno/kyverno
+    chart_version: "{{ kyverno_chart_version }}"
+    release_namespace: "{{ kyverno_namespace }}"
+    create_namespace: true
+    kubeconfig: "{{ kubeconfig_path }}"
+    wait: true
+    update_repo_cache: true
+    values: "{{ kyverno_values }}"
+  register: kyverno_core_helm
+
+- name: Wait for Kyverno CRDs to be established
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    kubeconfig: "{{ kubeconfig_path }}"
+  register: kyverno_crds
+  until: "'clusterpolicies.kyverno.io' in (kyverno_crds.resources | map(attribute='metadata.name') | list)"
+  retries: 20
+  delay: 15
+
+- name: Install/upgrade Kyverno Pod Security Standards policies chart
+  kubernetes.core.helm:
+    name: kyverno-policies
+    chart_ref: kyverno/kyverno-policies
+    chart_version: "{{ kyverno_policies_chart_version | default(omit) }}"
+    release_namespace: "{{ kyverno_namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+    wait: true
+    update_repo_cache: true
+  register: kyverno_policies_helm
+
+
+- name: Apply custom policies
+  vars:
+    policy_files: "{{ lookup('fileglob', kyverno_role_policies_glob, wantlist=True, errors='ignore') }}"
+  when: policy_files | length > 0
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    src: "{{ item }}"
+  loop: "{{ policy_files }}"

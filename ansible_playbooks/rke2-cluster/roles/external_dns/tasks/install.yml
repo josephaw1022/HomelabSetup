@@ -1,0 +1,80 @@
+---
+- name: Ensure external-dns namespace with PSS labels
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ external_dns_namespace }}"
+        labels:
+          pod-security.kubernetes.io/enforce: "restricted"
+          pod-security.kubernetes.io/audit: "restricted"
+          pod-security.kubernetes.io/warn: "restricted"
+
+- name: Allow ExternalDNS egress (CiliumNetworkPolicy)
+  when: external_dns_create_cnp
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: cilium.io/v2
+      kind: CiliumNetworkPolicy
+      metadata:
+        name: external-dns-egress
+        namespace: external-dns
+      spec:
+        endpointSelector:
+          matchLabels:
+            app.kubernetes.io/instance: external-dns
+            app.kubernetes.io/name: external-dns
+        egress:
+          - toEntities:
+              - kube-apiserver
+          - toEndpoints:
+              - matchLabels:
+                  "k8s:k8s-app": kube-dns
+            toPorts:
+              - ports:
+                  - port: "53"
+                    protocol: UDP
+                  - port: "53"
+                    protocol: TCP
+          - toEntities:
+              - world
+
+
+- name: Add ExternalDNS Helm repo
+  kubernetes.core.helm_repository:
+    name: external-dns
+    repo_url: "{{ external_dns_chart_repo }}"
+
+- name: Install/upgrade ExternalDNS
+  kubernetes.core.helm:
+    name: "{{ external_dns_release_name }}"
+    chart_ref: "{{ external_dns_chart_name }}"
+    chart_version: "{{ external_dns_chart_version }}"
+    release_namespace: "{{ external_dns_namespace }}"
+    create_namespace: true
+    kubeconfig: "{{ kubeconfig_path }}"
+    wait: true
+    update_repo_cache: true
+    atomic: true
+    values:
+      domainFilters: "{{ external_dns_domain_filters }}"
+      provider: "{{ external_dns_provider }}"
+      policy: "upsert-only"
+      registry: "noop"
+      sources:
+        - service
+        - ingress
+      extraArgs: "{{ external_dns_extra_args }}"
+      env:
+        - name: EXTERNAL_DNS_PIHOLE_PASSWORD
+          value: "{{ external_dns_pihole_password }}"
+      rbac:
+        create: "{{ external_dns_rbac_create }}"
+      serviceAccount:
+        create: "{{ external_dns_service_account_create }}"
+        name: "{{ external_dns_service_account_name }}"

@@ -1,0 +1,9 @@
+---
+- name: Uninstall ExternalDNS Helm release
+  kubernetes.core.helm:
+    name: "{{ external_dns_release_name }}"
+    release_namespace: "{{ external_dns_namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    wait: true
+  ignore_errors: true

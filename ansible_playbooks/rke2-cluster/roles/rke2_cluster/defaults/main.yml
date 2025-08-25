@@ -1,0 +1,18 @@
+rke2_action: install
+
+rke2_config_dir: /etc/rancher/rke2
+rke2_config_d_dir: /etc/rancher/rke2/config.yaml.d
+rke2_manifests_dir: /var/lib/rancher/rke2/server/manifests
+rke2_binary_path: /usr/local/bin/rke2
+rke2_service_name: rke2-server
+
+rke2_residual_paths:
+  - /etc/rancher/rke2
+  - /var/lib/rancher
+  - /var/lib/rke2
+  - /var/lib/kubelet
+  - /var/lib/cni
+  - /etc/cni/net.d
+
+# Use rke2_api_host from group_vars if present; otherwise fall back to the node's name
+rke2_tls_san: "{{ rke2_api_host | default(inventory_hostname) }}"

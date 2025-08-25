@@ -1,0 +1,66 @@
+---
+# What this role should do: install | uninstall
+kyverno_action: install
+
+# Helm configuration (override in group_vars if desired)
+kyverno_namespace: kyverno
+kyverno_chart_repo: "https://kyverno.github.io/kyverno/"
+kyverno_chart_version: "3.5.1"
+kyverno_policies_chart_version: ""   # empty => latest
+
+# Whether to delete the namespace on uninstall
+kyverno_delete_namespace: false
+
+# Globs for manifests BUNDLED WITH THIS ROLE under roles/kyverno/files/
+# Use role_path to resolve correctly regardless of CWD.
+kyverno_role_policies_glob: "{{ role_path }}/files/policies/*.yaml"
+
+# Default Helm values (override in group_vars if needed)
+kyverno_values:
+  admissionController:
+    replicas: 3
+    rbac:
+      clusterRole:
+        extraResources:
+          - apiGroups: ["*"]
+            resources: ["*"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["cilium.io"]
+            resources: ["ciliumnetworkpolicies"]
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  backgroundController:
+    replicas: 3
+    rbac:
+      clusterRole:
+        extraResources:
+          - apiGroups: ["*"]
+            resources: ["*"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["policy"]
+            resources: ["poddisruptionbudgets"]
+            verbs: ["create", "get", "list", "watch", "update", "patch"]
+          - apiGroups: ["cilium.io"]
+            resources: ["ciliumnetworkpolicies"]
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  cleanupController:
+    replicas: 3
+    rbac:
+      clusterRole:
+        extraResources:
+          - apiGroups: ["cilium.io"]
+            resources: ["ciliumnetworkpolicies"]
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  reportsController:
+    replicas: 3
+    rbac:
+      clusterRole:
+        extraResources:
+          - apiGroups: ["*"]
+            resources: ["*"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["cilium.io"]
+            resources: ["ciliumnetworkpolicies"]
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

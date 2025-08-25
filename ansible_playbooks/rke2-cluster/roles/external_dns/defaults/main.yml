@@ -1,0 +1,29 @@
+---
+external_dns_action: install
+
+external_dns_namespace: external-dns
+external_dns_release_name: external-dns
+external_dns_chart_repo: "https://kubernetes-sigs.github.io/external-dns/"
+external_dns_chart_name: "external-dns/external-dns"
+external_dns_chart_version: "1.18.0"
+
+external_dns_domain_filters:
+  - "kubesoar.com"
+
+external_dns_provider: "pihole"
+external_dns_pihole_server: "http://pihole.kubesoar.com"
+external_dns_pihole_tls_skip_verify: true
+
+external_dns_extra_args:
+  - "--source=service"
+  - "--source=ingress"
+  - "--pihole-server={{ external_dns_pihole_server }}"
+  - "--pihole-tls-skip-verify"
+
+
+external_dns_rbac_create: true
+external_dns_service_account_create: true
+external_dns_service_account_name: "external-dns"
+
+
+external_dns_create_cnp: true

@@ -1,0 +1,54 @@
+# Route: install | uninstall (default: install)
+cilium_action: install
+
+# Helm & Cilium settings (override in group_vars if desired)
+cilium_namespace: kube-system
+cilium_chart_repo: "https://helm.cilium.io"
+cilium_chart_version: "1.18.1"
+
+# Cluster endpoint + LB IPs (kubeconfig_path comes from group_vars/all/kubeconfig.yaml)
+cilium_host: "desktop-server.kubesoar.com"
+cilium_load_balancer_ip: "192.168.2.100"
+cilium_load_balancer_ip_pools:
+  - "192.168.2.64/26"
+
+# Gateway API CRDs (idempotent to apply with state: present)
+cilium_gateway_api_crds:
+  - "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.2.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml"
+  - "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.2.0/config/crd/standard/gateway.networking.k8s.io_gateways.yaml"
+  - "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.2.0/config/crd/standard/gateway.networking.k8s.io_httproutes.yaml"
+  - "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.2.0/config/crd/standard/gateway.networking.k8s.io_referencegrants.yaml"
+  - "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.2.0/config/crd/standard/gateway.networking.k8s.io_grpcroutes.yaml"
+  - "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.2.0/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml"
+
+# Values for the Cilium Helm chart
+cilium_values:
+  kubeProxyReplacement: true
+  k8sServiceHost: "{{ cilium_host }}"
+  k8sServicePort: 6443
+  l2announcements:
+    enabled: true
+  hubble:
+    relay:
+      enabled: true
+    ui:
+      enabled: true
+  ingressController:
+    enabled: true
+    default: true
+    loadBalancerMode: "shared"
+    service:
+      loadBalancerIP: "{{ cilium_load_balancer_ip }}"
+  gatewayAPI:
+    enabled: false
+    hostNetwork:
+      enabled: true
+  envoy:
+    enabled: false
+    securityContext:
+      capabilities:
+        keepCapNetBindService: true
+        envoy:
+          - NET_BIND_SERVICE
+  operator:
+    replicas: 1

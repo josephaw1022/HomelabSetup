@@ -1,0 +1,9 @@
+- name: Delete kubeconfig
+  ansible.builtin.include_tasks: delete.yml
+  when: kubeconfig_action == 'absent'
+  tags: [delete]
+
+- name: Fetch & install kubeconfig
+  ansible.builtin.include_tasks: fetch_install.yml
+  when: kubeconfig_action == 'fetch'
+  tags: [fetch, install]

@@ -1,0 +1,51 @@
+---
+# Removed the hard assert; rke2_tls_san now has a sensible default in defaults/main.yml
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Skip host if RKE2 is already running
+  ansible.builtin.meta: end_host
+  when:
+    - "'{{ rke2_service_name }}.service' in ansible_facts.services"
+    - ansible_facts.services['{{ rke2_service_name }}.service'].state == 'running'
+
+- name: Install RKE2 (one-time)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    curl -sfL https://get.rke2.io | sh -
+  args:
+    creates: "{{ rke2_binary_path }}"
+
+- name: Ensure RKE2 directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ rke2_config_dir }}"
+    - "{{ rke2_config_d_dir }}"
+    - "{{ rke2_manifests_dir }}"
+
+- name: Write combined RKE2 config
+  ansible.builtin.copy:
+    dest: "{{ rke2_config_dir }}/config.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      write-kubeconfig-mode: "0644"
+      cni: none
+      disable-kube-proxy: true
+      tls-san:
+        - {{ rke2_tls_san }}
+      disable:
+        - rke2-ingress-nginx
+
+- name: Enable & start rke2-server
+  ansible.builtin.service:
+    name: "{{ rke2_service_name }}"
+    enabled: true
+    state: started

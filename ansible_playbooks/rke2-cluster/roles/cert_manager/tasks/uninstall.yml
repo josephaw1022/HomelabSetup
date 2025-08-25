@@ -1,0 +1,86 @@
+---
+- name: Uninstall cert-manager Helm release
+  kubernetes.core.helm:
+    name: cert-manager
+    release_namespace: "{{ cert_manager_namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    wait: true
+  ignore_errors: true
+
+- name: Delete cert-manager CR instances (broad kinds)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    api_version: "{{ item.apiVersion }}"
+    kind: "{{ item.kind }}"
+  loop:
+    - apiVersion: "cert-manager.io/v1"
+      kind: "ClusterIssuer"
+    - apiVersion: "cert-manager.io/v1"
+      kind: "Issuer"
+    - apiVersion: "cert-manager.io/v1"
+      kind: "Certificate"
+    - apiVersion: "cert-manager.io/v1"
+      kind: "CertificateRequest"
+    - apiVersion: "acme.cert-manager.io/v1"
+      kind: "Order"
+    - apiVersion: "acme.cert-manager.io/v1"
+      kind: "Challenge"
+  ignore_errors: true
+
+# Delete webhook configurations
+- name: Delete webhook configurations
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    api_version: admissionregistration.k8s.io/v1
+    kind: "{{ item.kind }}"
+    name: "{{ item.name }}"
+  loop:
+    - kind: "MutatingWebhookConfiguration"
+      name: "cert-manager-webhook"
+    - kind: "ValidatingWebhookConfiguration"
+      name: "cert-manager-webhook"
+  ignore_errors: true
+
+# Delete CRDs (cluster-scoped)
+- name: Delete cert-manager CRDs
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    definition:
+      apiVersion: apiextensions.k8s.io/v1
+      kind: CustomResourceDefinition
+      metadata:
+        name: "{{ item }}"
+  loop:
+    - certificaterequests.cert-manager.io
+    - certificates.cert-manager.io
+    - challenges.acme.cert-manager.io
+    - clusterissuers.cert-manager.io
+    - issuers.cert-manager.io
+    - orders.acme.cert-manager.io
+  ignore_errors: true
+
+# Delete NetworkPolicy & Namespace (optional)
+- name: Delete cert-manager NetworkPolicy
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    definition:
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      metadata:
+        name: cert-manager-allow-all
+        namespace: "{{ cert_manager_namespace }}"
+  ignore_errors: true
+
+- name: Delete cert-manager namespace (optional)
+  when: cert_manager_delete_namespace | bool
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    kind: Namespace
+    name: "{{ cert_manager_namespace }}"
+  ignore_errors: true

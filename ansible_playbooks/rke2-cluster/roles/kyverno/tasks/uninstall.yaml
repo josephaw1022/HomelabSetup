@@ -1,0 +1,49 @@
+---
+
+# Remove policies (ClusterPolicy etc.) defined in this role
+- name: Remove custom policies from role (if any)
+  vars:
+    policy_files: "{{ lookup('fileglob', kyverno_role_policies_glob, wantlist=True, errors='ignore') }}"
+  when: policy_files | length > 0
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    src: "{{ item }}"
+  loop: "{{ policy_files }}"
+
+# Remove RBAC defined in this role
+- name: Remove RBAC from role (if any)
+  vars:
+    rbac_files: "{{ lookup('fileglob', kyverno_role_rbac_glob, wantlist=True, errors='ignore') }}"
+  when: rbac_files | length > 0
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    src: "{{ item }}"
+  loop: "{{ rbac_files }}"
+
+# Remove Helm releases
+- name: Remove kyverno-policies Helm release (if present)
+  kubernetes.core.helm:
+    name: kyverno-policies
+    release_namespace: "{{ kyverno_namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    wait: true
+
+- name: Remove kyverno Helm release (if present)
+  kubernetes.core.helm:
+    name: kyverno
+    release_namespace: "{{ kyverno_namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    wait: true
+
+# Optionally delete namespace (if you created it solely for Kyverno)
+- name: Optionally delete Kyverno namespace
+  when: kyverno_delete_namespace | bool
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    kind: Namespace
+    name: "{{ kyverno_namespace }}"

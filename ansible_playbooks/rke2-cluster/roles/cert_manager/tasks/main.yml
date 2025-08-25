@@ -1,0 +1,21 @@
+---
+# Route based on cert_manager_action (install | uninstall)
+
+- name: Normalize requested action
+  ansible.builtin.set_fact:
+    cert_manager_action_norm: "{{ cert_manager_action | lower }}"
+
+- name: Validate requested action
+  ansible.builtin.assert:
+    that: ["cert_manager_action_norm in ['install','uninstall']"]
+    fail_msg: "Invalid cert_manager_action='{{ cert_manager_action }}'. Use 'install' or 'uninstall'."
+
+- name: Run uninstall
+  ansible.builtin.include_tasks: uninstall.yml
+  when: cert_manager_action_norm == 'uninstall'
+  tags: [uninstall]
+
+- name: Run install
+  ansible.builtin.include_tasks: install.yml
+  when: cert_manager_action_norm == 'install'
+  tags: [install]

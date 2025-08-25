@@ -1,0 +1,15 @@
+---
+# Route: install | uninstall (default: install)
+cert_manager_action: install
+
+# Core settings (override in group_vars if desired)
+cert_manager_namespace: "cert-manager"
+cert_manager_chart: "oci://quay.io/jetstack/charts/cert-manager"
+cert_manager_version: "v1.18.2"
+
+# ClusterIssuers
+cert_manager_acme_email: "josephsims1@gmail.com"
+cert_manager_http01_ingress_class: "cilium"
+
+# Whether to delete namespace during uninstall (careful if shared!)
+cert_manager_delete_namespace: true

@@ -1,0 +1,48 @@
+---
+
+- name: Pick one RKE2 server to fetch from
+  ansible.builtin.set_fact:
+    rke2_src_host: "{{ (groups[rke2_server_group] | default([])) | first }}"
+  run_once: true
+
+- name: Fail if no RKE2 server host found
+  ansible.builtin.fail:
+    msg: "No hosts found in group {{ rke2_server_group }}."
+  when: rke2_src_host is not defined or rke2_src_host | length == 0
+  run_once: true
+
+- name: Slurp RKE2 kubeconfig from server
+  ansible.builtin.slurp:
+    src: "{{ rke2_server_kubeconfig }}"
+  delegate_to: "{{ rke2_src_host }}"
+  become: true
+  register: rke2_kubeconfig_slurp
+  run_once: true
+
+- name: Ensure kubeconfig drop-in directory exists on controller
+  ansible.builtin.file:
+    path: "{{ kubeconfig_dropin_dir }}"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Install kubeconfig directly to target path
+  ansible.builtin.copy:
+    dest: "{{ kubeconfig_path }}"
+    mode: "0600"
+    content: "{{ rke2_kubeconfig_slurp.content | b64decode }}"
+    backup: true
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Swap API server to TLS hostname
+  ansible.builtin.replace:
+    path: "{{ kubeconfig_path }}"
+    regexp: 'https://127\.0\.0\.1:6443'
+    replace: "https://{{ rke2_api_host }}:{{ rke2_api_port }}"
+  delegate_to: localhost
+  become: false
+  run_once: true

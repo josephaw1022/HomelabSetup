@@ -1,0 +1,23 @@
+# Python venv
+.venv/
+
+# Ansible cache
+.ansible/
+.ansible_async/
+.ansible_retry/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Pip cache
+*.egg-info/
+.eggs/
+.cache/
+
+# Logs and temp
+*.log
+*.tmp
+*.swp

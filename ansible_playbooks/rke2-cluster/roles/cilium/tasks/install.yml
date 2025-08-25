@@ -1,0 +1,85 @@
+---
+- name: Add Cilium Helm repo
+  kubernetes.core.helm_repository:
+    name: cilium
+    repo_url: "{{ cilium_chart_repo }}"
+
+- name: Apply Gateway API CRDs (idempotent)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    src: "{{ item }}"
+  loop: "{{ cilium_gateway_api_crds }}"
+
+- name: Install/upgrade Cilium (strict kube-proxy replacement + L2 + Hubble)
+  kubernetes.core.helm:
+    name: cilium
+    chart_ref: cilium/cilium
+    chart_version: "{{ cilium_chart_version }}"
+    release_namespace: "{{ cilium_namespace }}"
+    create_namespace: true
+    kubeconfig: "{{ kubeconfig_path }}"
+    wait: true
+    update_repo_cache: true
+    atomic: true
+    values: "{{ cilium_values }}"
+  register: cilium_helm
+
+- name: Ensure CiliumLoadBalancerIPPool (default-pool) exists with all blocks
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: cilium.io/v2alpha1
+      kind: CiliumLoadBalancerIPPool
+      metadata:
+        name: default-pool
+      spec:
+        blocks: "{{ cilium_load_balancer_ip_pools | map('community.general.dict_kv', 'cidr') | list }}"
+  register: cilium_ippool_result
+
+- name: Restart cilium-operator deployment if Helm or IPPool changed
+  when: (cilium_helm is changed) or (cilium_ippool_result is changed)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    namespace: "{{ cilium_namespace }}"
+    kind: Deployment
+    name: cilium-operator
+    state: restarted
+  ignore_errors: true
+
+- name: Restart cilium DaemonSet if Helm or IPPool changed
+  when: (cilium_helm is changed) or (cilium_ippool_result is changed)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    namespace: "{{ cilium_namespace }}"
+    kind: DaemonSet
+    name: cilium
+    state: restarted
+  ignore_errors: true
+
+- name: Create default Gateway (idempotent)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: Gateway
+      metadata:
+        name: cilium-gateway
+        namespace: "{{ cilium_namespace }}"
+      spec:
+        gatewayClassName: cilium
+        listeners:
+          - name: http
+            port: 80
+            protocol: HTTP
+            allowedRoutes:
+              namespaces:
+                from: All
+          - name: https
+            port: 443
+            protocol: HTTPS
+            allowedRoutes:
+              namespaces:
+                from: All

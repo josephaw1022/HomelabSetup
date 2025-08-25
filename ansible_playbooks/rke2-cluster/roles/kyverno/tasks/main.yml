@@ -1,0 +1,19 @@
+---
+- name: Normalize requested action
+  ansible.builtin.set_fact:
+    kyverno_action_norm: "{{ kyverno_action | lower }}"
+
+- name: Validate requested action
+  ansible.builtin.assert:
+    that: ["kyverno_action_norm in ['install','uninstall']"]
+    fail_msg: "Invalid kyverno_action='{{ kyverno_action }}'. Use 'install' or 'uninstall'."
+
+- name: Run uninstall
+  ansible.builtin.include_tasks: uninstall.yaml
+  when: kyverno_action_norm == 'uninstall'
+  tags: [uninstall]
+
+- name: Run install
+  ansible.builtin.include_tasks: install.yaml
+  when: kyverno_action_norm == 'install'
+  tags: [install]
