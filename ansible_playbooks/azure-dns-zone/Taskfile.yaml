@@ -1,0 +1,14 @@
+version: '3'
+
+tasks:
+  create-dns-zone:
+    desc: Create Azure DNS zone for the kubesoar.com subdomain
+    cmds:
+      - chmod +x setup-dns-zone.sh
+      - ./setup-dns-zone.sh
+
+  delete-dns-zone:
+    desc: Delete Azure DNS zone and resource groups (teardown)
+    cmds:
+      - chmod +x setup-dns-zone.sh
+      - ./setup-dns-zone.sh --teardown
