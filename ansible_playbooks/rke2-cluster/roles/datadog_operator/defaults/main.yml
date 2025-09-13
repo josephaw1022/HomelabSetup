@@ -6,6 +6,36 @@ datadog_operator_chart_name: "datadog/datadog-operator"
 datadog_operator_site: "us5.datadoghq.com"
 datadog_operator_cluster_name: "homelab"
 
+datadog_operator_helm_chart_values:
+  site: "{{ datadog_operator_site }}"
+
+  datadogAgentProfile:
+    enabled: true
+
+  datadogMonitor:
+    enabled: true
+
+  datadogSLO:
+    enabled: true
+
+  remoteConfiguration:
+    enabled: true
+
+  apiKeyExistingSecret: "datadog-secret"
+
+  appKeyExistingSecret: "datadog-secret"
+
+
+  clusterRole:
+    allowReadAllResources: true
+    allowCreatePodsExec: true
+
+  datadogCRDs:
+    crds:
+      datadogSLOs: true
+      datadogDashboards: true
+      datadogGenericResources: true
+      datadogAgentProfiles: true
 
 datadog_operator_agent_spec:
   global:
@@ -54,7 +84,7 @@ datadog_operator_agent_spec:
       iast:
         enabled: true
     usm:
-      enabled: true
+      enabled: false
     liveProcessCollection:
       enabled: true
 
@@ -66,6 +96,9 @@ datadog_operator_agent_spec:
     nodeAgent:
       image:
         name: "gcr.io/datadoghq/agent:latest"
+      env:
+        - name: DD_SYSTEM_PROBE_ENABLED
+          value: "false"
       tolerations:
         - key: "node-role.kubernetes.io/controlplane"
           operator: "Exists"
@@ -80,13 +113,9 @@ datadog_operator_agent_spec:
             path: /var/lib/kubelet/seccomp
             type: DirectoryOrCreate
 
-  clusterRole:
-    allowReadAllResources: true
-    allowCreatePodsExec: true
-
-  datadogCRDs:
-    crds:
-      datadogSLOs: true
-      datadogDashboards: true
-      datadogGenericResources: true
-      datadogAgentProfiles: true
+      containers:
+        system-probe:
+          securityContext:
+            privileged: true
+            seLinuxOptions:
+              type: container_t

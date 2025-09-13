@@ -1,4 +1,4 @@
----
+
 - name: Ensure Datadog namespace with privileged PSS labels
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_path }}"
@@ -13,32 +13,33 @@
           pod-security.kubernetes.io/audit: "privileged"
           pod-security.kubernetes.io/warn: "privileged"
 
-- name: Delete Kyverno default-deny NetworkPolicy if it exists
+- name: Allow Datadog workloads via Kyverno PolicyException (v2)
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_path }}"
-    state: absent
-    api_version: networking.k8s.io/v1
-    kind: NetworkPolicy
-    namespace: "{{ datadog_operator_namespace }}"
-    name: default-deny-all
-  ignore_errors: true
-
-- name: Add Datadog Helm repo
-  kubernetes.core.helm_repository:
-    name: datadog
-    repo_url: "{{ datadog_operator_chart_repo }}"
-
-- name: Install/upgrade Datadog Operator
-  kubernetes.core.helm:
-    name: datadog-operator
-    chart_ref: "{{ datadog_operator_chart_name }}"
-    chart_version: "{{ datadog_operator_chart_version | default(omit) }}"
-    release_namespace: "{{ datadog_operator_namespace }}"
-    create_namespace: false
-    kubeconfig: "{{ kubeconfig_path }}"
-    wait: true
-    update_repo_cache: true
-    atomic: true
+    state: present
+    definition:
+      apiVersion: kyverno.io/v2
+      kind: PolicyException
+      metadata:
+        name: allow-datadog-namespace
+        namespace: "{{ datadog_operator_namespace }}"
+      spec:
+        match:
+          any:
+            - resources:
+                kinds: ["Pod", "DaemonSet", "Deployment"]
+                namespaces: ["{{ datadog_operator_namespace }}"]
+        exceptions:
+          - policyName: disallow-host-path
+            ruleNames: ["host-path"]
+          - policyName: disallow-selinux
+            ruleNames: ["selinux-type"]
+          - policyName: disallow-host-ports
+            ruleNames: ["host-ports-none"]
+          - policyName: restrict-apparmor-profiles
+            ruleNames: ["app-armor"]
+          - policyName: disallow-privileged-containers
+            ruleNames: ["privileged-containers"]
 
 - name: Create Datadog secret
   kubernetes.core.k8s:
@@ -55,6 +56,45 @@
         api-key: "{{ datadog_operator_api_key }}"
         app-key: "{{ datadog_operator_app_key }}"
 
+- name: Delete Kyverno default-deny NetworkPolicy if it exists
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    api_version: networking.k8s.io/v1
+    kind: NetworkPolicy
+    namespace: "{{ datadog_operator_namespace }}"
+    name: default-deny-all
+  ignore_errors: true
+
+- name: Add Datadog Helm repo
+  kubernetes.core.helm_repository:
+    name: datadog
+    repo_url: "{{ datadog_operator_chart_repo }}"
+
+- name: Install/upgrade Datadog Operator (helm)
+  kubernetes.core.helm:
+    name: datadog-operator
+    chart_ref: "{{ datadog_operator_chart_name }}"
+    chart_version: "{{ datadog_operator_chart_version | default(omit) }}"
+    release_namespace: "{{ datadog_operator_namespace }}"
+    create_namespace: false
+    kubeconfig: "{{ kubeconfig_path }}"
+    values: "{{ datadog_operator_helm_chart_values }}"
+    wait: true
+    update_repo_cache: true
+    atomic: true
+
+- name: Wait for DatadogAgent API to be discoverable
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: datadoghq.com/v2alpha1
+    kind: DatadogAgent
+    namespace: "{{ datadog_operator_namespace }}"
+  register: dd_api
+  failed_when: false
+  until: dd_api.api_found | default(false)
+  retries: 60
+  delay: 5
 
 - name: Deploy DatadogAgent custom resource
   kubernetes.core.k8s:
@@ -67,6 +107,3 @@
         name: datadog
         namespace: "{{ datadog_operator_namespace }}"
       spec: "{{ datadog_operator_agent_spec }}"
-
-
-

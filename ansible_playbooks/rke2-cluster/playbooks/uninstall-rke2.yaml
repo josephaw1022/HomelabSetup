@@ -1,0 +1,15 @@
+
+
+
+- name: Uninstall RKE2 from servers
+  hosts: rke2_server
+  become: true
+  roles:
+    - role: rke2_cluster
+      vars:
+        rke2_action: "uninstall"
+      ignore_errors: true
+
+    - role: kubeconfig
+      vars:
+        kubeconfig_action: "delete"

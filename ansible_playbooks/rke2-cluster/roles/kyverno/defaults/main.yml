@@ -17,6 +17,11 @@ kyverno_role_policies_glob: "{{ role_path }}/files/policies/*.yaml"
 
 # Values to pass to the Helm chart
 kyverno_values:
+  features:
+    policyExceptions:
+      enabled: true
+      namespace: "*"
+
   admissionController:
     replicas: 3
     rbac:

@@ -2,7 +2,7 @@
 cilium_action: install
 
 # Helm & Cilium settings (override in group_vars if desired)
-cilium_namespace: kube-system
+cilium_namespace: "cilium"
 cilium_chart_repo: "https://helm.cilium.io"
 cilium_chart_version: "1.18.1"
 
@@ -36,19 +36,34 @@ cilium_values:
   ingressController:
     enabled: true
     default: true
-    loadBalancerMode: "shared"
+    loadbalancerMode: "shared"
     service:
+      type: LoadBalancer
+      externalTrafficPolicy: Local
+      annotations:
+        io.cilium/lb-ipam-ips: "{{ cilium_load_balancer_ip }}"
       loadBalancerIP: "{{ cilium_load_balancer_ip }}"
+    enforceHttps: false
+
+    hostNetwork:
+      enabled: true
+
   gatewayAPI:
     enabled: false
     hostNetwork:
       enabled: true
   envoy:
-    enabled: false
+    enabled: true
     securityContext:
+      privileged: true
+      allowPrivilegeEscalation: true
       capabilities:
         keepCapNetBindService: true
         envoy:
           - NET_BIND_SERVICE
+          - NET_ADMIN
+          - SYS_ADMIN
+          - BPF
+
   operator:
     replicas: 1

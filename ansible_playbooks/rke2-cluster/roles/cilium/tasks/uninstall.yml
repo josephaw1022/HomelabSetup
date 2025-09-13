@@ -30,3 +30,40 @@
     state: absent
     wait: true
   ignore_errors: true
+
+- name: Remove Gateway API CRDs
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    src: "{{ item }}"
+  loop: "{{ cilium_gateway_api_crds }}"
+  ignore_errors: true
+
+- name: Remove all Cilium CRDs
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    definition:
+      apiVersion: apiextensions.k8s.io/v1
+      kind: CustomResourceDefinition
+      metadata:
+        name: "{{ item }}"
+  loop:
+    - ciliumendpoints.cilium.io
+    - ciliumnetworkpolicies.cilium.io
+    - ciliumnetworkpoliciesstatus.cilium.io
+    - ciliumclusterwidenetworkpolicies.cilium.io
+    - ciliumclusterwidenetworkpoliciesstatus.cilium.io
+    - ciliumnodes.cilium.io
+    - ciliumnodeconfigs.cilium.io
+    - ciliumbgppeeringpolicies.cilium.io
+    - ciliumbgpadvertisements.cilium.io
+    - ciliumbgpnodeconfigs.cilium.io
+    - ciliumbgppeerconfigs.cilium.io
+    - ciliumloadbalancerippools.cilium.io
+    - ciliuml2announcements.cilium.io
+    - ciliuml2announcementpolicies.cilium.io
+    - ciliumpodippools.cilium.io
+    - ciliumsnatpolicies.cilium.io
+    - ciliuml7policies.cilium.io
+  ignore_errors: true

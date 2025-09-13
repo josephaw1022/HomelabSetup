@@ -1,5 +1,30 @@
 ---
-- name: delete DatadogAgent
+- name: Remove finalizers from DatadogAgent CRs in the namespace (if any)
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: datadoghq.com/v2alpha1
+    kind: DatadogAgent
+    namespace: "{{ datadog_operator_namespace }}"
+  register: dd_agents
+  ignore_errors: true
+
+- name: Strip finalizers from each DatadogAgent
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: datadoghq.com/v2alpha1
+    kind: DatadogAgent
+    name: "{{ item.metadata.name }}"
+    namespace: "{{ item.metadata.namespace }}"
+    state: present
+    merge_type: merge
+    definition:
+      metadata:
+        finalizers: []
+  loop: "{{ dd_agents.resources | default([]) }}"
+  when: dd_agents is defined
+  ignore_errors: true
+
+- name: Delete DatadogAgent CRs (namespace-scoped)
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_path }}"
     state: absent
@@ -9,7 +34,7 @@
     name: datadog
   ignore_errors: true
 
-- name: uninstall datadog operator helm release
+- name: Uninstall Datadog Operator Helm release
   kubernetes.core.helm:
     name: datadog-operator
     release_namespace: "{{ datadog_operator_namespace }}"
@@ -18,10 +43,79 @@
     wait: true
   ignore_errors: true
 
-- name: delete namespace
+- name: Gather ValidatingWebhookConfigurations
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: admissionregistration.k8s.io/v1
+    kind: ValidatingWebhookConfiguration
+  register: vwc_all
+  ignore_errors: true
+
+- name: Delete Datadog ValidatingWebhookConfigurations
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: admissionregistration.k8s.io/v1
+    kind: ValidatingWebhookConfiguration
+    name: "{{ item.metadata.name }}"
+    state: absent
+  loop: "{{ (vwc_all.resources | default([])) | selectattr('metadata.name','search','datadog') | list }}"
+  ignore_errors: true
+
+- name: Gather MutatingWebhookConfigurations
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: admissionregistration.k8s.io/v1
+    kind: MutatingWebhookConfiguration
+  register: mwc_all
+  ignore_errors: true
+
+- name: Delete Datadog MutatingWebhookConfigurations
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: admissionregistration.k8s.io/v1
+    kind: MutatingWebhookConfiguration
+    name: "{{ item.metadata.name }}"
+    state: absent
+  loop: "{{ (mwc_all.resources | default([])) | selectattr('metadata.name','search','datadog') | list }}"
+  ignore_errors: true
+
+# Delete ALL CRDs from the datadoghq.com API group
+- name: Gather CRDs
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+  register: all_crds
+  ignore_errors: true
+
+- name: Delete Datadog CRDs (anything *.datadoghq.com)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: "{{ item.metadata.name }}"
+    state: absent
+  loop: "{{ (all_crds.resources | default([])) | selectattr('metadata.name','search','\\.datadoghq\\.com$') | list }}"
+  ignore_errors: true
+
+# Try normal namespace deletion
+- name: Delete namespace
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_path }}"
     state: absent
     kind: Namespace
     name: "{{ datadog_operator_namespace }}"
+  when: datadog_operator_delete_namespace
+  ignore_errors: true
+
+# Last resort: force-finalize namespace by clearing its finalizers
+- name: Force-finalize namespace (last resort)
+  ansible.builtin.shell: |
+    set -o pipefail
+    kubectl get ns "{{ datadog_operator_namespace }}" -o json \
+    | jq '.spec.finalizers=[]' \
+    | kubectl replace --raw "/api/v1/namespaces/{{ datadog_operator_namespace }}/finalize" -f -
+  args:
+    executable: /bin/bash
+  when: datadog_operator_delete_namespace
   ignore_errors: true

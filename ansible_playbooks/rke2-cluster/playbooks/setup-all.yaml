@@ -1,23 +1,27 @@
 ---
-- name: Install RKE2 on servers
-  hosts: rke2_server
-  become: true
-  roles:
-    - rke2_cluster
+# - name: Install RKE2 on servers
+#   hosts: rke2_server
+#   become: true
+#   roles:
+#     - rke2_cluster
 
-- name: Fetch kubeconfig locally
-  hosts: localhost
-  gather_facts: false
-  roles:
-    - role: kubeconfig
-      vars:
-        kubeconfig_action: fetch
+# - name: Fetch kubeconfig locally
+#   hosts: localhost
+#   gather_facts: false
+#   roles:
+#     - role: kubeconfig
+#       vars:
+#         kubeconfig_action: fetch
 
 - name: Install Cilium
   hosts: localhost
   gather_facts: false
   roles:
-    - cilium
+    - role: cilium
+      vars:
+        cilium_action: uninstall
+        cilium_delete_namespace: true
+        cilium_namespace: "cilium"
 
 - name: Install Kyverno
   hosts: localhost
@@ -25,7 +29,7 @@
   roles:
     - role: kyverno
       vars:
-        kyverno_action: install
+        kyverno_action: uninstall
         kyverno_delete_namespace: true
 
 
@@ -33,7 +37,10 @@
   hosts: localhost
   gather_facts: false
   roles:
-    - cert_manager
+    - role: cert_manager
+      vars:
+        cert_manager_action: uninstall
+        cert_manager_delete_namespace: true
 
 - name: Install Longhorn
   hosts: localhost
@@ -41,7 +48,7 @@
   roles:
     - role: longhorn
       vars:
-        longhorn_action: install
+        longhorn_action: uninstall
         longhorn_delete_namespace: true
 
 - name: Install Datadog Operator
@@ -50,5 +57,5 @@
   roles:
     - role: datadog_operator
       vars:
-        datadog_operator_action: install
+        datadog_operator_action: uninstall
         datadog_operator_delete_namespace: true

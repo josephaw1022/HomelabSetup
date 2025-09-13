@@ -30,6 +30,7 @@
     state: absent
     wait: true
 
+
 # Optionally delete namespace (if you created it solely for Kyverno)
 - name: Optionally delete Kyverno namespace
   when: kyverno_delete_namespace | bool
@@ -38,3 +39,6 @@
     state: absent
     kind: Namespace
     name: "{{ kyverno_namespace }}"
+
+
+

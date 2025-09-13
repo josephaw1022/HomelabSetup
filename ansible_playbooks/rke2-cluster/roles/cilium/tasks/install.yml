@@ -20,7 +20,24 @@
   kubernetes.core.helm_repository:
     name: cilium
     repo_url: "{{ cilium_chart_repo }}"
+    force_update: true
   when: cilium_operator.resources | length == 0
+
+- name: Create Cilium ns with privileged pod annotations
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ cilium_namespace }}"
+        annotations:
+          pod-security.kubernetes.io/enforce: privileged
+          pod-security.kubernetes.io/audit: privileged
+          pod-security.kubernetes.io/warn: privileged
+  when: cilium_operator.resources | length == 0
+
 
 - name: Apply Gateway API CRDs (idempotent)
   kubernetes.core.k8s:
@@ -40,10 +57,9 @@
     kubeconfig: "{{ kubeconfig_path }}"
     wait: true
     update_repo_cache: true
-    atomic: true
     values: "{{ cilium_values }}"
+    force: true
   register: cilium_helm
-  when: cilium_operator.resources | length == 0
 
 - name: Ensure CiliumLoadBalancerIPPool (default-pool) exists with all blocks
   kubernetes.core.k8s:
@@ -57,33 +73,32 @@
       spec:
         blocks: "{{ cilium_load_balancer_ip_pools | map('community.general.dict_kv', 'cidr') | list }}"
   register: cilium_ippool_result
-  when: cilium_operator.resources | length == 0
 
 - name: Restart cilium-operator deployment if Helm or IPPool changed
-  when: ((cilium_helm is changed) or (cilium_ippool_result is changed) ) and (cilium_operator.resources | length == 0)
+  # when: ((cilium_helm is changed) or (cilium_ippool_result is changed) ) and (cilium_operator.resources | length == 0)
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_path }}"
     namespace: "{{ cilium_namespace }}"
     kind: Deployment
     name: cilium-operator
-    state: restarted
+    state: present
   ignore_errors: true
 
 - name: Restart cilium DaemonSet if Helm or IPPool changed
-  when: ((cilium_helm is changed) or (cilium_ippool_result is changed) ) and (cilium_operator.resources | length == 0)
+  # when: ((cilium_helm is changed) or (cilium_ippool_result is changed) ) and (cilium_operator.resources | length == 0)
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_path }}"
     namespace: "{{ cilium_namespace }}"
     kind: DaemonSet
     name: cilium
-    state: restarted
+    state: present
   ignore_errors: true
 
 - name: Create default Gateway (idempotent)
   when: cilium_gateway.resources | length == 0
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_path }}"
-    state: present
+    state: absent
     definition:
       apiVersion: gateway.networking.k8s.io/v1
       kind: Gateway
@@ -105,3 +120,73 @@
             allowedRoutes:
               namespaces:
                 from: All
+
+
+- name: Expose Hubble UI via Ingress with TLS (hubble.kubesoar.com)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: hubble-ui
+        namespace: kube-system
+        annotations:
+          kubernetes.io/ingress.class: cilium
+          cert-manager.io/cluster-issuer: self-signed
+          ingress.cilium.io/loadbalancer-mode: "shared"
+          ingress.cilium.io/force-https: "disabled"
+          ingress.cilium.io/loadbalancer-ip: "{{ cilium_load_balancer_ip }}"
+
+      spec:
+        ingressClassName: cilium
+        rules:
+          - host: hubble.kubesoar.com
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: hubble-ui
+                      port:
+                        number: 80
+        tls:
+          - hosts:
+              - hubble.kubesoar.com
+            secretName: hubble-ui-tls
+
+
+- name: Dummy Ingress for Test App on shared LB
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: absent
+    definition:
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: dummy-app
+        namespace: kube-system
+        annotations:
+          kubernetes.io/ingress.class: cilium
+          cert-manager.io/cluster-issuer: letsencrypt-dev
+          ingress.cilium.io/loadbalancer-mode: "shared"
+          ingress.cilium.io/loadbalancer-ip: "{{ cilium_load_balancer_ip }}"
+      spec:
+        ingressClassName: cilium
+        rules:
+          - host: dummy.kubesoar.com
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: dummy-service
+                      port:
+                        number: 80
+        tls:
+          - hosts:
+              - dummy.kubesoar.com
+            secretName: dummy-tls

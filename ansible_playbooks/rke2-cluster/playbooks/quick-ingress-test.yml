@@ -1,0 +1,106 @@
+- name: Quick NGINX Ingress Test
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    desired_state: absent   # set to "absent" to delete everything
+    ns: nginx-demo
+    app_name: nginx-demo
+    host_name: nginx.kubesoar.com
+    ingress_class: cilium
+    cluster_issuer: self-signed
+    cilium_load_balancer_ip: "192.168.2.100"
+
+  tasks:
+    - name: Namespace
+      kubernetes.core.k8s:
+        state: "{{ desired_state }}"
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ ns }}"
+
+    - name: NGINX Deployment
+      kubernetes.core.k8s:
+        state: "{{ desired_state }}"
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: "{{ app_name }}"
+            namespace: "{{ ns }}"
+            labels: { app: "{{ app_name }}" }
+          spec:
+            replicas: 1
+            selector:
+              matchLabels: { app: "{{ app_name }}" }
+            template:
+              metadata:
+                labels: { app: "{{ app_name }}" }
+              spec:
+                containers:
+                  - name: nginx
+                    image: nginx:stable
+                    volumeMounts:
+                      - mountPath: /var/cache/nginx
+                        name: nginx-cache
+                      - mountPath: /run
+                        name: nginx-run
+                    ports:
+                      - containerPort: 80
+
+                volumes:
+                  - name: nginx-cache
+                    emptyDir: {}
+                  - name: nginx-run
+                    emptyDir: {}
+
+
+    - name: Service
+      kubernetes.core.k8s:
+        state: "{{ desired_state }}"
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: "{{ app_name }}"
+            namespace: "{{ ns }}"
+          spec:
+            type: ClusterIP
+            selector: { app: "{{ app_name }}" }
+            ports:
+              - port: 80
+                targetPort: 80
+                protocol: TCP
+
+    - name: Ingress
+      kubernetes.core.k8s:
+        state: "{{ desired_state }}"
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: "{{ app_name }}"
+            namespace: "{{ ns }}"
+            annotations:
+              kubernetes.io/ingress.class: "{{ ingress_class }}"
+              cert-manager.io/cluster-issuer: "{{ cluster_issuer }}"
+              ingress.cilium.io/loadbalancer-mode: "shared"
+              ingress.cilium.io/loadbalancer-ip: "{{ cilium_load_balancer_ip }}"
+          spec:
+            ingressClassName: "{{ ingress_class }}"
+            rules:
+              - host: "{{ host_name }}"
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: "{{ app_name }}"
+                          port:
+                            number: 80
+            tls:
+              - hosts: ["{{ host_name }}"]
+                secretName: "{{ app_name }}-tls"
